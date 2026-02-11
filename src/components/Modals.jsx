@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, FileText, Download, ChevronRight, CheckCircle2, Camera, Timer, Beaker, ClipboardList } from 'lucide-react';
+import { X, FileText, Download, ChevronRight, CheckCircle2, Camera, Timer, Beaker, ClipboardList, Mic, Plus } from 'lucide-react';
 import { MenuButton } from './Shared';
 import { MapSelector } from './MapSelector';
 import { MOCK_CROPS, MOCK_FIELDS, MOCK_WORKERS, MOCK_PESTICIDES, MOCK_METHODS, MOCK_TARGETS, WORK_TYPES, SPREADING_METHODS, USER_CROPS } from '../data/constants';
@@ -124,7 +124,58 @@ export function CSVExportModal({ onClose, records }) { // Added records prop
 
 import { Link } from 'react-router-dom';
 
-export function SettingsModal({ onClose }) {
+export function SettingsModal({ onClose, settings, onUpdate }) {
+    const [localSettings, setLocalSettings] = useState(settings || { ja_id: '', line_info: '', custom_crops: [], custom_methods: [] });
+    const [newCrop, setNewCrop] = useState('');
+    const [newMethod, setNewMethod] = useState('');
+    const { user } = useAuth(); // Import this context usage at top if needed, or pass user prop
+
+    // Helper to update Supabase
+    const saveSettings = async (newSettings) => {
+        setLocalSettings(newSettings);
+        if (onUpdate) onUpdate(newSettings);
+
+        try {
+            const { error } = await supabase
+                .from('user_settings')
+                .upsert({
+                    user_id: (await supabase.auth.getUser()).data.user.id,
+                    ...newSettings,
+                    updated_at: new Date()
+                });
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error saving settings:", e);
+        }
+    };
+
+    const handleAddCrop = () => {
+        if (newCrop && !localSettings.custom_crops.includes(newCrop)) {
+            const updated = { ...localSettings, custom_crops: [...localSettings.custom_crops, newCrop] };
+            saveSettings(updated);
+            setNewCrop('');
+        }
+    };
+
+    const handleRemoveCrop = (crop) => {
+        const updated = { ...localSettings, custom_crops: localSettings.custom_crops.filter(c => c !== crop) };
+        saveSettings(updated);
+    };
+
+    const handleAddMethod = () => {
+        if (newMethod && !localSettings.custom_methods.includes(newMethod)) {
+            const updated = { ...localSettings, custom_methods: [...localSettings.custom_methods, newMethod] };
+            saveSettings(updated);
+            setNewMethod('');
+        }
+    };
+
+    const handleRemoveMethod = (method) => {
+        const updated = { ...localSettings, custom_methods: localSettings.custom_methods.filter(m => m !== method) };
+        saveSettings(updated);
+    };
+
+
     return (
         <div className="fixed inset-0 z-50 bg-slate-900/20 backdrop-blur-sm flex justify-end">
             <div className="w-full max-w-md bg-white h-full shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
@@ -132,33 +183,80 @@ export function SettingsModal({ onClose }) {
                     <h2 className="text-xl font-bold text-slate-800">設定</h2>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={24} className="text-slate-400" /></button>
                 </div>
-                <div className="p-6 space-y-8 overflow-y-auto">
-                    <div className="space-y-3">
-                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">アカウント</h3>
-                        <Link to="/login" onClick={onClose} className="block">
-                            <div className="bg-slate-50 rounded-2xl p-5 flex items-center justify-between border border-slate-100 hover:bg-slate-100 transition-colors cursor-pointer">
-                                <span className="font-bold text-green-600">ログイン / 新規登録</span>
-                                <ChevronRight size={20} className="text-green-600" />
-                            </div>
-                        </Link>
-                        <div className="bg-slate-50 rounded-2xl p-5 flex items-center justify-between border border-slate-100 hover:bg-slate-100 transition-colors cursor-pointer">
-                            <span className="font-bold text-slate-700">プロフィール編集</span>
-                            <ChevronRight size={20} className="text-slate-400" />
+                <div className="p-6 space-y-8 overflow-y-auto pb-safe">
+                    <div className="space-y-4">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">アカウント連携</h3>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-slate-600 block">JA組合員番号</label>
+                            <input
+                                type="text"
+                                value={localSettings.ja_id || ''}
+                                onChange={(e) => saveSettings({ ...localSettings, ja_id: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-700 focus:ring-2 focus:ring-green-500 outline-none"
+                                placeholder="例: 12345678"
+                            />
                         </div>
-                        <div className="bg-slate-50 rounded-2xl p-5 flex items-center justify-between border border-slate-100">
-                            <span className="font-bold text-slate-700">所属部会設定</span>
-                            <span className="text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">東部会</span>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-slate-600 block">LINE ID / 連携情報</label>
+                            <input
+                                type="text"
+                                value={localSettings.line_info || ''}
+                                onChange={(e) => saveSettings({ ...localSettings, line_info: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-700 focus:ring-2 focus:ring-green-500 outline-none"
+                                placeholder="LINE ID設定"
+                            />
                         </div>
                     </div>
-                    <div className="space-y-3">
-                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">記録設定</h3>
-                        <div className="bg-slate-50 rounded-2xl p-5 flex items-center justify-between border border-slate-100">
-                            <span className="font-bold text-slate-700">デフォルト圃場</span>
-                            <span className="text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">本田1号</span>
+
+                    <div className="space-y-4">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">カスタマイズ</h3>
+
+                        {/* Custom Crops */}
+                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                            <label className="text-sm font-bold text-slate-700 mb-2 block">栽培作物 (追加登録)</label>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                {localSettings.custom_crops && localSettings.custom_crops.map(c => (
+                                    <span key={c} className="bg-white border border-slate-200 px-2 py-1 rounded-lg text-xs font-bold text-slate-600 flex items-center space-x-1">
+                                        <span>{c}</span>
+                                        <button onClick={() => handleRemoveCrop(c)}><X size={12} /></button>
+                                    </span>
+                                ))}
+                            </div>
+                            <div className="flex space-x-2">
+                                <input
+                                    type="text"
+                                    value={newCrop}
+                                    onChange={(e) => setNewCrop(e.target.value)}
+                                    placeholder="新しい作物を入力"
+                                    className="flex-1 text-sm p-2 rounded-lg border border-slate-200 outline-none"
+                                />
+                                <button onClick={handleAddCrop} className="bg-slate-800 text-white px-3 py-2 rounded-lg text-xs font-bold"><Plus size={16} /></button>
+                            </div>
                         </div>
-                        <div className="bg-slate-50 rounded-2xl p-5 flex items-center justify-between border border-slate-100">
-                            <span className="font-bold text-slate-700">作業時間の自動計測</span>
-                            <div className="w-12 h-7 bg-green-500 rounded-full relative shadow-inner cursor-pointer"><div className="absolute right-1 top-1 w-5 h-5 bg-white rounded-full shadow-sm"></div></div>
+
+                        {/* Custom Methods */}
+                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                            <label className="text-sm font-bold text-slate-700 mb-2 block">散布方法 (追加登録)</label>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                {localSettings.custom_methods && localSettings.custom_methods.map(m => (
+                                    <span key={m} className="bg-white border border-slate-200 px-2 py-1 rounded-lg text-xs font-bold text-slate-600 flex items-center space-x-1">
+                                        <span>{m}</span>
+                                        <button onClick={() => handleRemoveMethod(m)}><X size={12} /></button>
+                                    </span>
+                                ))}
+                            </div>
+                            <div className="flex space-x-2">
+                                <input
+                                    type="text"
+                                    value={newMethod}
+                                    onChange={(e) => setNewMethod(e.target.value)}
+                                    placeholder="新しい方法を入力"
+                                    className="flex-1 text-sm p-2 rounded-lg border border-slate-200 outline-none"
+                                />
+                                <button onClick={handleAddMethod} className="bg-slate-800 text-white px-3 py-2 rounded-lg text-xs font-bold"><Plus size={16} /></button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -216,7 +314,10 @@ export function RecordMenuOverlay({ onClose, onSelect }) {
 
 
 
-export function RecordModal({ type, onClose, onSubmit, inventory }) {
+import { supabase } from '../lib/supabase'; // Needed for storage upload
+import { useAuth } from '../contexts/AuthContext'; // Needed for user ID in settings
+
+export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         timeStart: "08:00",
@@ -235,7 +336,8 @@ export function RecordModal({ type, onClose, onSubmit, inventory }) {
         workType: "",
         isMixing: false,
         yieldAmount: "",
-        yieldUnit: "kg"
+        yieldUnit: "kg",
+        imageUrl: null
     });
     const [showMap, setShowMap] = useState(false);
     const [timerRunning, setTimerRunning] = useState(false);
@@ -243,6 +345,73 @@ export function RecordModal({ type, onClose, onSubmit, inventory }) {
     const [mixInput, setMixInput] = useState("");
     const [mixRatio, setMixRatio] = useState("");
     const [mixAmount, setMixAmount] = useState("");
+    const [uploading, setUploading] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+
+    // Merge defaults with User Settings
+    const availableCrops = settings?.custom_crops ? [...MOCK_CROPS, ...settings.custom_crops] : MOCK_CROPS;
+    const availableMethods = settings?.custom_methods ? [...SPREADING_METHODS, ...settings.custom_methods] : SPREADING_METHODS;
+
+    const handlePhotoUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+            setFormData({ ...formData, imageUrl: data.publicUrl });
+        } catch (error) {
+            alert('画像のアップロードに失敗しました');
+            console.error(error);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const toggleVoiceInput = () => {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert("このブラウザは音声入力に対応していません。");
+            return;
+        }
+
+        if (isListening) {
+            setIsListening(false);
+            // Stop logic handles automatically by not restarting
+        } else {
+            setIsListening(true);
+            const recognition = new window.webkitSpeechRecognition();
+            recognition.lang = 'ja-JP';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                setFormData(prev => ({ ...prev, memo: (prev.memo ? prev.memo + '\n' : '') + transcript }));
+                setIsListening(false);
+            };
+
+            recognition.onerror = (event) => {
+                console.error(event.error);
+                setIsListening(false);
+            };
+
+            recognition.onend = () => {
+                setIsListening(false);
+            }
+
+            recognition.start();
+        }
+    };
 
     const addMix = () => { if (mixInput) { setFormData({ ...formData, mixes: [...formData.mixes, { name: mixInput, ratio: mixRatio, amount: mixAmount }] }); setMixInput(""); setMixRatio(""); setMixAmount(""); } };
     const removeMix = (index) => { const newMixes = [...formData.mixes]; newMixes.splice(index, 1); setFormData({ ...formData, mixes: newMixes }); };
@@ -328,18 +497,25 @@ export function RecordModal({ type, onClose, onSubmit, inventory }) {
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-32">
                     {/* ... (Keep existing photo upload UI) ... */}
-                    <div className="bg-slate-50 rounded-2xl h-32 flex items-center justify-center border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-100 transition-colors">
-                        <div className="flex flex-col items-center space-y-2 text-slate-400">
-                            <Camera size={24} />
-                            <span className="text-xs font-bold">証拠写真を撮影 (必須)</span>
-                        </div>
+                    <div className="bg-slate-50 rounded-2xl h-32 flex items-center justify-center border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-100 transition-colors relative">
+                        <input type="file" accept="image/*" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                        {uploading ? (
+                            <span className="text-slate-400 font-bold animate-pulse">アップロード中...</span>
+                        ) : formData.imageUrl ? (
+                            <img src={formData.imageUrl} alt="Uploaded" className="h-full object-contain rounded-xl" />
+                        ) : (
+                            <div className="flex flex-col items-center space-y-2 text-slate-400">
+                                <Camera size={24} />
+                                <span className="text-xs font-bold">証拠写真を撮影 (必須)</span>
+                            </div>
+                        )}
                     </div>
 
                     <section className="space-y-4">
                         <div className="flex items-center space-x-2 text-green-600 font-extrabold text-xs uppercase tracking-wider bg-green-50 inline-block px-3 py-1 rounded-md mb-2"><Timer size={14} /> <span>日時・場所・作物</span></div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">日付</label><input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none" /></div>
-                            <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">対象作物</label><select value={formData.crop} onChange={(e) => setFormData({ ...formData, crop: e.target.value, workType: "" })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 appearance-none focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none">{USER_CROPS.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                            <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">対象作物</label><select value={formData.crop} onChange={(e) => setFormData({ ...formData, crop: e.target.value, workType: "" })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 appearance-none focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none">{availableCrops.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                         </div>
 
                         {/* Map Selection Toggle */}
@@ -410,7 +586,7 @@ export function RecordModal({ type, onClose, onSubmit, inventory }) {
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-500 ml-1">散布方法</label>
                                 <select value={formData.method} onChange={(e) => setFormData({ ...formData, method: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 appearance-none focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none">
-                                    {SPREADING_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                                    {availableMethods.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
                             </div>
 
@@ -491,7 +667,16 @@ export function RecordModal({ type, onClose, onSubmit, inventory }) {
                     )}
 
                     <section className="space-y-4">
-                        <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">メモ (任意)</label><textarea value={formData.memo} onChange={(e) => setFormData({ ...formData, memo: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-medium rounded-xl p-3.5 h-24 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none resize-none"></textarea></div>
+                        <div className="space-y-1.5 align-middle">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-xs font-bold text-slate-500 ml-1">メモ (任意)</label>
+                                <button onClick={toggleVoiceInput} type="button" className={`flex items-center space-x-1 text-xs font-bold px-2 py-1 rounded-full transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600'}`}>
+                                    <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-white' : 'bg-slate-600'}`}></div>
+                                    <span>{isListening ? '聞いています...' : '音声入力'}</span>
+                                </button>
+                            </div>
+                            <textarea value={formData.memo} onChange={(e) => setFormData({ ...formData, memo: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-medium rounded-xl p-3.5 h-24 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none resize-none"></textarea>
+                        </div>
                     </section>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-6 pb-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]"><button onClick={handleSubmit} className="w-full py-4 rounded-2xl font-bold text-xl shadow-xl bg-green-600 hover:bg-green-500 text-white shadow-green-100 flex items-center justify-center space-x-2 transition-transform active:scale-[0.98]"><CheckCircle2 size={24} /><span>記録して完了</span></button></div>

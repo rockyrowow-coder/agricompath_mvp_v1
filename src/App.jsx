@@ -27,6 +27,12 @@ export default function App() {
   const [timelineData, setTimelineData] = useState(INITIAL_TIMELINE);
   const [myRecords, setMyRecords] = useState([]); // Start empty, fetch from DB
   const [inventory, setInventory] = useState([]); // Start empty, fetch from DB
+  const [userSettings, setUserSettings] = useState({
+    ja_id: '',
+    line_info: '',
+    custom_crops: [],
+    custom_methods: []
+  });
   const [notification, setNotification] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -93,6 +99,22 @@ export default function App() {
           // For MVP, if empty, we might use INITIAL_INVENTORY purely for display if we pushed it?
           // Let's stick to DB truth. If empty, it's empty.
           if (inventoryData.length === 0) setInventory(INITIAL_INVENTORY); // Fallback for demo if DB empty
+        }
+
+        // 3. Fetch User Settings
+        const { data: settingsData, error: settingsError } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (settingsData) {
+          setUserSettings({
+            ja_id: settingsData.ja_id || '',
+            line_info: settingsData.line_info || '',
+            custom_crops: settingsData.custom_crops || [],
+            custom_methods: settingsData.custom_methods || []
+          });
         }
 
       } catch (error) {
@@ -292,8 +314,8 @@ export default function App() {
 
       {modalType && (
         modalType === 'csv' ? <CSVExportModal onClose={() => setModalType(null)} records={myRecords} /> :
-          modalType === 'settings' ? <SettingsModal onClose={() => setModalType(null)} /> :
-            <RecordModal type={modalType} onClose={() => setModalType(null)} onSubmit={handleRecordSubmit} inventory={inventory} />
+          modalType === 'settings' ? <SettingsModal onClose={() => setModalType(null)} settings={userSettings} onUpdate={setUserSettings} /> :
+            <RecordModal type={modalType} onClose={() => setModalType(null)} onSubmit={handleRecordSubmit} inventory={inventory} settings={userSettings} />
       )}
 
       {notification && (
