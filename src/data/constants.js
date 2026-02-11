@@ -107,3 +107,29 @@ export const SPREADING_METHODS = ["動噴(手撒き)", "ブームスプレーヤ
 export const USER_CROPS = ["アールス(守山)", "マリア(守山)", "水稲(コシヒカリ)"];
 
 export const MOCK_AI_TAGS = ["#つる枯病予察", "#糖度アップ", "#日持ち向上", "#省力化", "#秀品率向上"];
+
+
+// --- ARCHITECTURE REFACTOR: New Admin Mock Data ---
+
+export const MOCK_ADMIN_STATS = {
+    pestControlRate: 78, // %
+    alertLevel: 'active', // 'normal', 'warning', 'active'
+    alertRegion: '守山東部',
+    alertTarget: 'アザミウマ'
+};
+
+export const MOCK_MEMBERS = [
+    { id: 101, name: "田中 義雄", region: "西部", lastSubmission: "昨日", status: "ok" },
+    { id: 102, name: "佐藤 健一", region: "西部", lastSubmission: "2日前", status: "ok" },
+    { id: 103, name: "山本 浩二", region: "東部", lastSubmission: "5日前", status: "warning" },
+    { id: 104, name: "鈴木 大介", region: "東部", lastSubmission: "10日前", status: "alert" },
+    { id: 105, name: "高橋 誠流", region: "北部", lastSubmission: "昨日", status: "ok" },
+];
+
+export const MOCK_GROUPS = [
+    { id: 'all', name: '全生産者' },
+    { id: 'east', name: '東部エリア' },
+    { id: 'west', name: '西部エリア' },
+    { id: 'melon', name: 'メロン部会' },
+    { id: 'rice', name: '水稲部会' },
+];
