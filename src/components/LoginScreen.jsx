@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Sprout } from 'lucide-react';
+import { JA_DOMAIN } from '../data/constants';
 
 export function LoginScreen() {
     const [loginMode, setLoginMode] = useState('farmer'); // 'farmer' or 'admin'
@@ -16,12 +17,22 @@ export function LoginScreen() {
         e.preventDefault();
         setLoading(true);
         try {
+            // Domain Restriction Logic for Admin
+            let emailToUse = email;
+            if (loginMode === 'admin') {
+                if (!email.includes('@')) {
+                    emailToUse = `${email}@${JA_DOMAIN}`;
+                } else if (!email.endsWith(`@${JA_DOMAIN}`)) {
+                    throw new Error(`管理者ログインは @${JA_DOMAIN} のメールアドレスのみ有効です`);
+                }
+            }
+
             if (isSignUp) {
-                const { error } = await signUp({ email, password });
+                const { error } = await signUp({ email: emailToUse, password });
                 if (error) throw error;
                 alert('登録確認メールを送信しました！');
             } else {
-                const { error } = await signIn({ email, password });
+                const { error } = await signIn({ email: emailToUse, password });
                 if (error) throw error;
 
                 // Persist Role

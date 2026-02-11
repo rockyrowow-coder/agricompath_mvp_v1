@@ -133,3 +133,33 @@ export const MOCK_GROUPS = [
     { id: 'melon', name: 'メロン部会' },
     { id: 'rice', name: '水稲部会' },
 ];
+
+// --- Phase 5: JA Lake Shiga & Safety ---
+
+export const JA_DOMAIN = 'lakeshiga.jas.or.jp';
+
+// Extensive Pesticid List (Mocking a real DB)
+export const MOCK_PESTICIDES_EXTENDED = [
+    { id: 1, name: "ダコニール1000", category: "殺菌剤", target: "広範囲" },
+    { id: 2, name: "スコア顆粒水和剤", category: "殺菌剤", target: "うどんこ病" },
+    { id: 3, name: "アミスター20フロアブル", category: "殺菌剤", target: "べと病・炭疽病" },
+    { id: 4, name: "ベルクート水和剤", category: "殺菌剤", target: "つる枯病" },
+    { id: 5, name: "スタークル粒剤", category: "殺虫剤", target: "アブラムシ" },
+    { id: 6, name: "アファーム乳剤", category: "殺虫剤", target: "オオタバコガ" },
+    { id: 7, name: "コテツフロアブル", category: "殺虫剤", target: "ダニ・アザミウマ" },
+    { id: 8, name: "モスピラン水溶剤", category: "殺虫剤", target: "アブラムシ" },
+    { id: 9, name: "ロブラール水和剤", category: "殺菌剤", target: "灰星病" },
+    { id: 10, name: "トップジンM水和剤", category: "殺菌剤", target: "炭疽病" },
+    { id: 11, name: "DDVP乳剤", category: "殺虫剤", target: "アブラムシ" },
+    { id: 12, name: "マッチ乳剤", category: "殺虫剤", target: "ヨトウムシ" },
+    { id: 13, name: "ラウンドアップ", category: "除草剤", target: "雑草" },
+    { id: 14, name: "バスタ液剤", category: "除草剤", target: "雑草" },
+];
+
+// Mixing Rules: Key is a pesticide name, Value is list of incompatible names
+export const INCOMPATIBLE_MIXES = {
+    "ダコニール1000": ["アミスター20フロアブル", "ボルドー液"], // Example incompatibilities (Mock)
+    "アミスター20フロアブル": ["ダコニール1000"],
+    "ベルクート水和剤": ["石灰硫黄合剤"],
+    "アファーム乳剤": ["ボルドー液"]
+};

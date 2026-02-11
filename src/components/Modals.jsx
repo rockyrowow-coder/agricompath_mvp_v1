@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { X, FileText, Download, ChevronRight, CheckCircle2, Camera, Timer, Beaker, ClipboardList, Mic, Plus } from 'lucide-react';
+import { X, FileText, Download, ChevronRight, CheckCircle2, Camera, Timer, Beaker, ClipboardList, Mic, Plus, MapPin, Search, AlertTriangle } from 'lucide-react';
 import { MenuButton } from './Shared';
 import { MapSelector } from './MapSelector';
-import { MOCK_CROPS, MOCK_FIELDS, MOCK_WORKERS, MOCK_PESTICIDES, MOCK_METHODS, MOCK_TARGETS, WORK_TYPES, SPREADING_METHODS, USER_CROPS } from '../data/constants';
+import { MOCK_CROPS, MOCK_FIELDS, MOCK_WORKERS, MOCK_PESTICIDES, MOCK_METHODS, MOCK_TARGETS, WORK_TYPES, SPREADING_METHODS, USER_CROPS, MOCK_PESTICIDES_EXTENDED, INCOMPATIBLE_MIXES } from '../data/constants';
 
 export function CSVExportModal({ onClose, records }) { // Added records prop
     const [selectedIds, setSelectedIds] = useState(records ? records.map(r => r.id) : []);
@@ -259,8 +259,78 @@ export function SettingsModal({ onClose, settings, onUpdate }) {
                             </div>
                         </div>
                     </div>
+
+                    <div className="space-y-4">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">圃場管理 (Phase 5)</h3>
+                        <FieldRegistration />
+                    </div>
                 </div>
             </div>
+        </div>
+    );
+}
+
+function FieldRegistration() {
+    const [name, setName] = useState('');
+    const [area, setArea] = useState('');
+    const [location, setLocation] = useState(null);
+    const [loadingLocation, setLoadingLocation] = useState(false);
+
+    const handleGetLocation = () => {
+        setLoadingLocation(true);
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setLocation({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    });
+                    setLoadingLocation(false);
+                    alert("位置情報を取得しました！");
+                },
+                (error) => {
+                    console.error(error);
+                    alert("位置情報の取得に失敗しました。");
+                    setLoadingLocation(false);
+                }
+            );
+        } else {
+            alert("このブラウザは位置情報に対応していません。");
+            setLoadingLocation(false);
+        }
+    };
+
+    const handleRegisterField = () => {
+        if (!name) return alert("圃場名を入力してください");
+        alert(`圃場「${name}」を登録しました！\n面積: ${area}a\n位置: ${location ? '取得済み' : '未取得'}`);
+        // In real app, save to Supabase 'fields' table
+        setName('');
+        setArea('');
+        setLocation(null);
+    };
+
+    return (
+        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3">
+            <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500">圃場名</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 rounded-lg border border-slate-200 text-sm font-bold" placeholder="例: 本田3号" />
+            </div>
+            <div className="flex space-x-3">
+                <div className="flex-1 space-y-1">
+                    <label className="text-xs font-bold text-slate-500">面積 (a)</label>
+                    <input type="number" value={area} onChange={e => setArea(e.target.value)} className="w-full p-2 rounded-lg border border-slate-200 text-sm font-bold" placeholder="10" />
+                </div>
+                <div className="flex-1 space-y-1">
+                    <label className="text-xs font-bold text-slate-500">位置情報</label>
+                    <button onClick={handleGetLocation} className={`w-full p-2 rounded-lg border text-sm font-bold flex items-center justify-center space-x-1 ${location ? 'bg-green-100 text-green-700 border-green-200' : 'bg-white border-slate-200 text-slate-600'}`}>
+                        <MapPin size={14} />
+                        <span>{loadingLocation ? '取得中...' : location ? '取得済' : '現在地'}</span>
+                    </button>
+                </div>
+            </div>
+            <button onClick={handleRegisterField} className="w-full bg-slate-800 text-white py-2 rounded-lg text-sm font-bold mt-2">
+                圃場を登録
+            </button>
         </div>
     );
 }
@@ -590,10 +660,10 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
                                 </select>
                             </div>
 
-                            {/* Main Agent */}
+                            {/* Main Agent (Pesticide) with Search & Safety Check */}
                             <div className="space-y-1.5">
                                 <div className="flex justify-between">
-                                    <label className="text-xs font-bold text-red-500 ml-1">主剤 (在庫連動)</label>
+                                    <label className="text-xs font-bold text-red-500 ml-1">主剤 (在庫連動・検索)</label>
                                     <div className="flex items-center space-x-2">
                                         <label className="text-xs font-bold text-slate-400">混用あり？</label>
                                         <div onClick={() => setFormData({ ...formData, isMixing: !formData.isMixing })} className={`w-10 h-6 rounded-full relative cursor-pointer transition-colors ${formData.isMixing ? 'bg-green-500' : 'bg-slate-200'}`}>
@@ -601,37 +671,85 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
                                         </div>
                                     </div>
                                 </div>
-                                <select value={formData.pesticide} onChange={(e) => setFormData({ ...formData, pesticide: e.target.value })} className="w-full bg-red-50 border border-red-200 text-red-900 font-bold rounded-xl p-3.5 appearance-none focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none">
-                                    <option value="" disabled>在庫から選択してください</option>
-                                    {availableInventory.map(item => (
-                                        <option key={item.id} value={item.name} disabled={item.quantity <= 0}>
-                                            {item.name} (残: {item.quantity}{item.unit}) {item.quantity <= 0 ? '(在庫切れ)' : ''}
-                                        </option>
-                                    ))}
-                                </select>
+
+                                <div className="relative">
+                                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        list="pesticide-options"
+                                        value={formData.pesticide}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setFormData({ ...formData, pesticide: val });
+
+                                            // Safety Check for Mixing
+                                            if (formData.mixes.length > 0) {
+                                                const risks = formData.mixes.filter(m => {
+                                                    const rules = INCOMPATIBLE_MIXES[val];
+                                                    return rules && rules.includes(m.name);
+                                                });
+                                                if (risks.length > 0) {
+                                                    alert(`【危険】選択した薬剤「${val}」は「${risks.map(r => r.name).join(', ')}」と混用できません！`);
+                                                    setFormData(prev => ({ ...prev, pesticide: "" }));
+                                                }
+                                            }
+                                        }}
+                                        className="w-full bg-red-50 border border-red-200 text-red-900 font-bold rounded-xl pl-10 pr-4 py-3.5 focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none placeholder:text-red-300"
+                                        placeholder="薬剤名を検索..."
+                                    />
+                                    <datalist id="pesticide-options">
+                                        {/* Combine Inventory + Mock Extended DB */}
+                                        {availableInventory.map(i => <option key={i.id} value={i.name}>在庫: {i.quantity}{i.unit}</option>)}
+                                        {MOCK_PESTICIDES_EXTENDED.map(p => <option key={`ext-${p.id}`} value={p.name}>{p.category} ({p.target})</option>)}
+                                    </datalist>
+                                </div>
                             </div>
 
                             {/* Dilution & Amount for Main Agent */}
                             <div className="grid grid-cols-2 gap-4">
-                                {type === 'pesticide' && <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">希釈倍率</label><input type="number" value={formData.dilution} onChange={(e) => setFormData({ ...formData, dilution: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none" placeholder="1000" /></div>}
-                                <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">使用量</label><input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none" placeholder="100" /></div>
+                                {type === 'pesticide' && <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">希釈倍率</label><input type="number" value={formData.dilution} onChange={(e) => setFormData({ ...formData, dilution: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none text-lg" placeholder="1000" /></div>}
+                                <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">使用量</label><input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none text-lg" placeholder="100" /></div>
                             </div>
 
                             {/* Mixing Section */}
                             {formData.isMixing && (
                                 <div className="bg-slate-50 p-4 rounded-xl border border-dashed border-slate-300 space-y-3 animate-in slide-in-from-top-1">
-                                    <p className="text-xs font-bold text-slate-500">混用薬剤の追加</p>
+                                    <p className="text-xs font-bold text-slate-500">混用薬剤の追加 ({formData.mixes.length}剤)</p>
+
+                                    {/* Mixing List */}
                                     {formData.mixes.map((mix, idx) => (
-                                        <div key={idx} className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-700">
+                                        <div key={idx} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 text-sm font-bold text-slate-700 shadow-sm">
                                             <span>{mix.name} ({mix.ratio ? mix.ratio + '倍' : ''} {mix.amount})</span>
-                                            <button onClick={() => removeMix(idx)} className="text-red-400 hover:text-red-500"><X size={14} /></button>
+                                            <button onClick={() => removeMix(idx)} className="text-red-400 hover:text-red-500 p-1"><X size={16} /></button>
                                         </div>
                                     ))}
-                                    <div className="flex space-x-2">
-                                        <input type="text" value={mixInput} onChange={(e) => setMixInput(e.target.value)} placeholder="薬剤名" className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-green-500" />
-                                        <input type="number" value={mixRatio} onChange={(e) => setMixRatio(e.target.value)} placeholder="倍率" className="w-16 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-green-500" />
-                                        <input type="text" value={mixAmount} onChange={(e) => setMixAmount(e.target.value)} placeholder="量" className="w-16 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-green-500" />
-                                        <button onClick={addMix} className="bg-slate-800 text-white px-3 rounded-lg text-xs font-bold hover:bg-slate-700"><Plus size={16} /></button>
+
+                                    <div className="flex flex-col space-y-2">
+                                        <input
+                                            type="text"
+                                            value={mixInput}
+                                            onChange={(e) => setMixInput(e.target.value)}
+                                            placeholder="混用する薬剤名"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-3 text-sm font-bold outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                                        />
+                                        <div className="flex space-x-2">
+                                            <input type="number" value={mixRatio} onChange={(e) => setMixRatio(e.target.value)} placeholder="倍率" className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-3 text-sm font-bold outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 text-right" />
+                                            <input type="text" value={mixAmount} onChange={(e) => setMixAmount(e.target.value)} placeholder="量" className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-3 text-sm font-bold outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 text-right" />
+                                            <button
+                                                onClick={() => {
+                                                    // Safety Check before adding mix
+                                                    const rules = INCOMPATIBLE_MIXES[formData.pesticide];
+                                                    if (rules && rules.includes(mixInput)) {
+                                                        alert(`【危険】「${formData.pesticide}」と「${mixInput}」は混用できません！`);
+                                                        return;
+                                                    }
+                                                    addMix();
+                                                }}
+                                                className="bg-slate-800 text-white px-4 rounded-lg text-sm font-bold hover:bg-slate-700 shadow-md transition-transform active:scale-95"
+                                            >
+                                                <Plus size={20} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}

@@ -53,12 +53,55 @@ export default function AdminApp() {
     );
 }
 
+import { supabase } from '../lib/supabase';
+
 function AdminDashboard() {
-    const stats = MOCK_ADMIN_STATS;
+    const [stats, setStats] = useState(MOCK_ADMIN_STATS);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchRealStats = async () => {
+            try {
+                // Fetch count of records from today
+                const today = new Date().toISOString().split('T')[0];
+                const { count, error } = await supabase
+                    .from('records')
+                    .select('*', { count: 'exact', head: true })
+                    .gte('date', today);
+
+                if (error) throw error;
+
+                // Calculate specific pest control rate (mock logic for demo using real count)
+                // In a real app, this would be complex logic based on total farmers vs submitted records
+                setStats(prev => ({
+                    ...prev,
+                    pestControlRate: Math.min(100, (count || 0) * 10) // Mocking rate calculation
+                }));
+            } catch (e) {
+                console.error("Error fetching admin stats:", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchRealStats();
+
+        // Real-time subscription
+        const subscription = supabase
+            .channel('admin-dashboard')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'records' }, payload => {
+                fetchRealStats();
+            })
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">地域の状況</h2>
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">地域の状況 (Real-time Configured)</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Alert Status Card */}
@@ -84,7 +127,7 @@ function AdminDashboard() {
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <h3 className="text-sm font-bold text-slate-500 mb-2">守山エリアの防除実施率</h3>
                     <div className="flex items-end space-x-2">
-                        <span className="text-5xl font-extrabold text-slate-800">{stats.pestControlRate}</span>
+                        <span className="text-5xl font-extrabold text-slate-800">{loading ? '-' : stats.pestControlRate}</span>
                         <span className="text-xl font-bold text-slate-400 mb-2">%</span>
                     </div>
                     <div className="w-full bg-slate-100 h-3 rounded-full mt-4 overflow-hidden">
@@ -136,8 +179,8 @@ function MemberManagement() {
                                 <td className="p-4 text-sm text-slate-600">{m.lastSubmission}</td>
                                 <td className="p-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${m.status === 'ok' ? 'bg-green-100 text-green-700' :
-                                            m.status === 'warning' ? 'bg-yellow-100 text-yellow-700' :
-                                                'bg-red-100 text-red-700'
+                                        m.status === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-red-100 text-red-700'
                                         }`}>
                                         {m.status === 'ok' ? '提出済' : m.status === 'warning' ? '未提出(3日)' : '未提出(7日+)'}
                                     </span>
