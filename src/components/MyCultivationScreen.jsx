@@ -1,12 +1,144 @@
 import React, { useState } from 'react';
-import { Download, Layout, CalendarDays, Map as MapIcon, BarChart3, Sprout, Package, Receipt, FileText, Search, Filter } from 'lucide-react';
+import { Download, Layout, CalendarDays, Map as MapIcon, BarChart3, Sprout, Package, Receipt, FileText, Search, Filter, Plus, X, CheckCircle2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { RecordTypeBadge } from './Shared';
 import { MOCK_AI_TAGS } from '../data/constants';
+
+// MaterialRegisterModal component (assuming it's defined elsewhere or needs to be added here)
+const MaterialRegisterModal = ({ onClose, onSubmit }) => {
+    const [name, setName] = useState('');
+    const [quantity, setQuantity] = useState('');
+    const [unit, setUnit] = useState('');
+    const [category, setCategory] = useState('そ�E仁E); // Default category
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!name || !quantity || !unit || !category) {
+            alert('全ての頁E��を�E力してください、E);
+            return;
+        }
+        onSubmit({ name, quantity, unit, category });
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md space-y-4">
+                <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-slate-800">賁E��を登録</h3>
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                        <X size={24} />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label htmlFor="name" className="block text-sm font-bold text-slate-700 mb-1">賁E��吁E/label>
+                        <input
+                            type="text"
+                            id="name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-medium"
+                            placeholder="侁E 殺虫剤、化成肥斁E
+                            required
+                        />
+                    </div>
+                    <div className="flex space-x-4">
+                        <div className="flex-1">
+                            <label htmlFor="quantity" className="block text-sm font-bold text-slate-700 mb-1">数釁E/label>
+                            <input
+                                type="number"
+                                id="quantity"
+                                value={quantity}
+                                onChange={(e) => setQuantity(e.target.value)}
+                                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-medium"
+                                placeholder="侁E 10"
+                                min="0"
+                                required
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label htmlFor="unit" className="block text-sm font-bold text-slate-700 mb-1">単佁E/label>
+                            <input
+                                type="text"
+                                id="unit"
+                                value={unit}
+                                onChange={(e) => setUnit(e.target.value)}
+                                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-medium"
+                                placeholder="侁E 袋、L、kg"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label htmlFor="category" className="block text-sm font-bold text-slate-700 mb-1">カチE��リ</label>
+                        <select
+                            id="category"
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-medium appearance-none"
+                            required
+                        >
+                            <option value="農薬">農薬</option>
+                            <option value="肥斁E>肥斁E/option>
+                            <option value="種孁E>種孁E/option>
+                            <option value="賁E��">賁E��</option>
+                            <option value="そ�E仁E>そ�E仁E/option>
+                        </select>
+                    </div>
+                    <button
+                        type="submit"
+                        className="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-base hover:bg-green-500 transition-colors flex items-center justify-center space-x-2"
+                    >
+                        <CheckCircle2 size={20} />
+                        <span>登録する</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 
 export function MyCultivationScreen({ records, onExport, inventory }) {
     const [viewMode, setViewMode] = useState('list');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all');
+    const [filterCrop, setFilterCrop] = useState('全て'); // New state variable
+    const [showRegisterModal, setShowRegisterModal] = useState(false); // New state variable
+    const { user } = useAuth(); // New hook
+
+    // We need a way to refresh inventory after adding, but props are passed from App.
+    // Ideally App should pass a refresh function, but for MVP we might just rely on re-mount or window reload if simple.
+    // Or better, we handle the insert here and maybe Optimistically update if we had setInventory passed.
+    // For now, we'll just insert to DB and alert user to refresh or if we can trigger a state update.
+    // Actually, App.jsx fetches inventory. If we insert here, App won't know unless we tell it.
+    // Let's just insert to DB and show success. The next load will have it. 
+
+    const handleRegisterMaterial = async (newMaterial) => {
+        if (!user) return;
+        
+        try {
+            const { error } = await supabase
+                .from('inventory')
+                .insert([{
+                    user_id: user.id,
+                    name: newMaterial.name,
+                    quantity: parseInt(newMaterial.quantity),
+                    unit: newMaterial.unit,
+                    category: newMaterial.category
+                }]);
+
+            if (error) throw error;
+            
+            setShowRegisterModal(false);
+            alert("賁E��を登録しました。反映するにはリロードしてください、E); 
+            // In a full app, we'd call a prop like onInventoryUpdate()
+        } catch(e) {
+            console.error("Error adding material:", e);
+            alert("登録に失敗しました");
+        }
+    };
 
     const filteredRecords = records.filter(record => {
         const term = searchTerm.toLowerCase();
@@ -32,10 +164,10 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                 <div className="flex justify-between items-center">
                     <div>
                         <h2 className="text-xl font-bold text-slate-800">MY栽培記録</h2>
-                        <p className="text-xs font-medium text-slate-400">自分の全データを管理</p>
+                        <p className="text-xs font-medium text-slate-400">自刁E�E全チE�Eタを管琁E/p>
                     </div>
                     <button onClick={onExport} className="flex items-center space-x-2 bg-green-600 text-white hover:bg-green-500 px-4 py-2 rounded-xl text-xs font-bold shadow-md shadow-green-100 transition-transform active:scale-95">
-                        <Download size={16} /> <span>CSV出力</span>
+                        <Download size={16} /> <span>CSV出劁E/span>
                     </button>
                 </div>
 
@@ -46,7 +178,7 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="作物・資材・作業名で検索..."
+                                placeholder="作物・賁E��・作業名で検索..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500"
@@ -71,7 +203,7 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                     {/* AI Suggested Tags */}
                     <div className="flex space-x-2 overflow-x-auto pb-1 no-scrollbar">
                         <div className="flex items-center space-x-1 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded flex-shrink-0">
-                            <span className="text-purple-500">✨ AI分析:</span>
+                            <span className="text-purple-500">✨ AI刁E��:</span>
                         </div>
                         {MOCK_AI_TAGS.map(tag => (
                             <button key={tag} onClick={() => handleTagClick(tag)} className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded whitespace-nowrap hover:bg-slate-50 hover:border-green-300 transition-colors">
@@ -83,12 +215,12 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
             </div>
 
             <div className="flex bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
-                <button onClick={() => setViewMode('list')} className={`flex-1 min-w-[80px] flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50'}`}><Layout size={16} /> <span>リスト</span></button>
-                <button onClick={() => setViewMode('gantt')} className={`flex-1 min-w-[80px] flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'gantt' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50'}`}><BarChart3 size={16} /> <span>工程表</span></button>
-                <button onClick={() => setViewMode('inventory')} className={`flex-1 min-w-[80px] flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'inventory' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50'}`}><Package size={16} /> <span>資材在庫</span></button>
-                <button onClick={() => setViewMode('accounting')} className={`flex-1 min-w-[80px] flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'accounting' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50'}`}><Receipt size={16} /> <span>経理</span></button>
-                <button onClick={() => setViewMode('calendar')} className={`flex-1 min-w-[80px] flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50'}`}><CalendarDays size={16} /> <span>防除暦</span></button>
-                <button onClick={() => setViewMode('map')} className={`flex-1 min-w-[80px] flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'map' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50'}`}><MapIcon size={16} /> <span>マップ</span></button>
+                <button onClick={() => setViewMode('list')} className={`flex - 1 min - w - [80px] flex items - center justify - center space - x - 1.5 py - 2.5 rounded - lg text - xs font - bold transition - all ${ viewMode === 'list' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50' } `}><Layout size={16} /> <span>リスチE/span></button>
+                <button onClick={() => setViewMode('gantt')} className={`flex - 1 min - w - [80px] flex items - center justify - center space - x - 1.5 py - 2.5 rounded - lg text - xs font - bold transition - all ${ viewMode === 'gantt' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50' } `}><BarChart3 size={16} /> <span>工程表</span></button>
+                <button onClick={() => setViewMode('inventory')} className={`flex - 1 min - w - [80px] flex items - center justify - center space - x - 1.5 py - 2.5 rounded - lg text - xs font - bold transition - all ${ viewMode === 'inventory' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50' } `}><Package size={16} /> <span>賁E��在庫</span></button>
+                <button onClick={() => setViewMode('accounting')} className={`flex - 1 min - w - [80px] flex items - center justify - center space - x - 1.5 py - 2.5 rounded - lg text - xs font - bold transition - all ${ viewMode === 'accounting' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50' } `}><Receipt size={16} /> <span>経理</span></button>
+                <button onClick={() => setViewMode('calendar')} className={`flex - 1 min - w - [80px] flex items - center justify - center space - x - 1.5 py - 2.5 rounded - lg text - xs font - bold transition - all ${ viewMode === 'calendar' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50' } `}><CalendarDays size={16} /> <span>防除暦</span></button>
+                <button onClick={() => setViewMode('map')} className={`flex - 1 min - w - [80px] flex items - center justify - center space - x - 1.5 py - 2.5 rounded - lg text - xs font - bold transition - all ${ viewMode === 'map' ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-400 hover:bg-slate-50' } `}><MapIcon size={16} /> <span>マッチE/span></button>
             </div>
 
             {viewMode === 'list' && (
@@ -100,20 +232,20 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                                 <RecordTypeBadge type={record.type} />
                             </div>
                             <div className="flex justify-between items-baseline">
-                                <span className="text-base font-bold text-slate-800">{record.detail || record.workType || "名称未設定"}</span>
+                                <span className="text-base font-bold text-slate-800">{record.detail || record.workType || "名称未設宁E}</span>
                                 {record.type === 'accounting' && <span className="text-lg font-bold text-slate-800">{record.amount}</span>}
                                 {record.type === 'harvest' && <span className="text-lg font-bold text-orange-600">{record.amount}</span>}
                             </div>
                             <div className="flex items-center text-xs text-slate-500 font-bold space-x-2">
                                 <span className="flex items-center"><Sprout size={12} className="mr-1" /> {record.crop}</span>
                                 <div>•</div>
-                                <span>{record.timeStart ? `${record.timeStart}~` : ''} {record.range}</span>
+                                <span>{record.timeStart ? `${ record.timeStart } ~` : ''} {record.range}</span>
                             </div>
                             {/* Specific details for new fields */}
                             {(record.pesticide || record.workType) && (
                                 <div className="text-xs text-slate-400 bg-slate-50 p-2 rounded relative">
-                                    {record.pesticide && <div>資材: {record.pesticide}</div>}
-                                    {record.workType && <div>作業: {record.workType} {record.amount ? `(${record.amount})` : ''}</div>}
+                                    {record.pesticide && <div>賁E��: {record.pesticide}</div>}
+                                    {record.workType && <div>作業: {record.workType} {record.amount ? `(${ record.amount })` : ''}</div>}
                                 </div>
                             )}
                         </div>
@@ -131,32 +263,37 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
             {viewMode === 'inventory' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in">
                     {inventory && inventory.map(item => (
-                        <div key={item.id} className={`bg-white p-5 rounded-2xl border ${item.quantity <= 1 ? 'border-red-200 bg-red-50' : 'border-slate-200'} shadow-sm flex flex-col justify-between h-full`}>
+                        <div key={item.id} className={`bg - white p - 5 rounded - 2xl border ${ item.quantity <= 1 ? 'border-red-200 bg-red-50' : 'border-slate-200' } shadow - sm flex flex - col justify - between h - full`}>
                             <div className="flex justify-between items-start mb-2">
-                                <span className={`text-xs font-bold px-2 py-1 rounded-md ${item.category === '農薬' ? 'bg-red-100 text-red-600' : item.category === '肥料' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-600'}`}>{item.category}</span>
-                                {item.quantity <= 1 && <span className="text-[10px] font-bold text-red-500 flex items-center bg-white px-2 py-0.5 rounded-full shadow-sm animate-pulse">在庫僅少</span>}
+                                <span className={`text - xs font - bold px - 2 py - 1 rounded - md ${ item.category === '農薬' ? 'bg-red-100 text-red-600' : item.category === '肥斁E ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-600' } `}>{item.category}</span>
+                                {item.quantity <= 1 && <span className="text-[10px] font-bold text-red-500 flex items-center bg-white px-2 py-0.5 rounded-full shadow-sm animate-pulse">在庫僁E��E/span>}
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold text-slate-800 mb-1">{item.name}</h3>
-                                <p className="text-sm font-medium text-slate-500">1単位: {item.unit}</p>
+                                <p className="text-sm font-medium text-slate-500">1単佁E {item.unit}</p>
                             </div>
                             <div className="mt-4 pt-4 border-t border-slate-100 flex items-end justify-between">
                                 <span className="text-xs font-bold text-slate-400">現在庫</span>
-                                <span className={`text-2xl font-extrabold ${item.quantity <= 1 ? 'text-red-500' : 'text-slate-800'}`}>{item.quantity} <span className="text-sm font-bold text-slate-500">個</span></span>
+                                <span className={`text - 2xl font - extrabold ${ item.quantity <= 1 ? 'text-red-500' : 'text-slate-800' } `}>{item.quantity} <span className="text-sm font-bold text-slate-500">倁E/span></span>
                             </div>
                         </div>
                     ))}
-                    <button className="col-span-1 md:col-span-2 py-4 bg-white border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold hover:bg-slate-50 hover:border-slate-300 transition-colors flex items-center justify-center">
-                        + 新しい資材を登録
+                    <button onClick={() => setShowRegisterModal(true)} className="col-span-1 md:col-span-2 py-4 bg-white border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold hover:bg-slate-50 hover:border-slate-300 transition-colors flex items-center justify-center space-x-2">
+                        <Plus size={20} />
+                        <span>新しい賁E��を登録</span>
                     </button>
                 </div>
+            )}
+
+            {showRegisterModal && (
+                <MaterialRegisterModal onClose={() => setShowRegisterModal(false)} onSubmit={handleRegisterMaterial} />
             )}
 
             {viewMode === 'accounting' && (
                 <div className="space-y-4 animate-in fade-in">
                     <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">今月の経費合計 (概算)</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">今月の経費合訁E(概箁E</p>
                             <h3 className="text-2xl font-extrabold text-slate-800">¥12,450</h3>
                         </div>
                         <div className="p-3 bg-yellow-50 rounded-full text-yellow-600">
@@ -183,7 +320,7 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                                         <span className="text-lg font-extrabold text-slate-800">{record.amount}</span>
                                     </div>
                                     <div className="bg-slate-50 rounded-lg h-32 flex items-center justify-center border-2 border-dashed border-slate-200">
-                                        <span className="text-xs font-bold text-slate-400">レシート画像</span>
+                                        <span className="text-xs font-bold text-slate-400">レシート画僁E/span>
                                     </div>
                                     {record.range !== "-" && <div className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded inline-block self-start">メモ: {record.range}</div>}
                                 </div>
@@ -196,7 +333,7 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
             {viewMode === 'map' && (
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-in fade-in h-64 relative flex items-center justify-center shadow-inner">
                     <div className="absolute inset-0 bg-slate-100 opacity-50 patterned-bg"></div>
-                    <p className="relative z-10 text-xs font-bold text-slate-400 bg-white/80 px-4 py-2 rounded-full backdrop-blur">作業範囲データに基づくヒートマップを表示予定</p>
+                    <p className="relative z-10 text-xs font-bold text-slate-400 bg-white/80 px-4 py-2 rounded-full backdrop-blur">作業篁E��チE�Eタに基づくヒート�EチE�Eを表示予宁E/p>
                 </div>
             )}
         </div>
@@ -219,7 +356,7 @@ function GanttView({ records }) {
     return (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in">
             <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                <h3 className="text-sm font-bold text-slate-700">栽培工程チャート</h3>
+                <h3 className="text-sm font-bold text-slate-700">栽培工程チャーチE/h3>
             </div>
             <div className="overflow-x-auto pb-4">
                 <div className="min-w-[800px] p-4">
@@ -229,7 +366,7 @@ function GanttView({ records }) {
                             const d = new Date(date);
                             const isToday = d.toDateString() === new Date().toDateString();
                             return (
-                                <div key={date} className={`flex-shrink-0 w-8 text-center text-[10px] font-bold ${isToday ? 'text-green-600' : 'text-slate-400'}`}>
+                                <div key={date} className={`flex - shrink - 0 w - 8 text - center text - [10px] font - bold ${ isToday ? 'text-green-600' : 'text-slate-400' } `}>
                                     {d.getDate()}
                                 </div>
                             );
@@ -268,8 +405,8 @@ function GanttView({ records }) {
                                         return (
                                             <div
                                                 key={record.id}
-                                                className={`absolute h-6 rounded-md shadow-sm border border-white/20 ${colorClass} group cursor-pointer hover:z-10 hover:scale-110 transition-transform`}
-                                                style={{ left: `${dateIndex * 32 + 2}px`, width: '28px' }}
+                                                className={`absolute h - 6 rounded - md shadow - sm border border - white / 20 ${ colorClass } group cursor - pointer hover: z - 10 hover: scale - 110 transition - transform`}
+                                                style={{ left: `${ dateIndex * 32 + 2 } px`, width: '28px' }}
                                             >
                                                 {/* Tooltip */}
                                                 <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-slate-800 text-white text-[10px] p-2 rounded-lg font-bold z-20 shadow-xl pointer-events-none">
