@@ -315,7 +315,7 @@ export default function App() {
           <Route path="/" element={<HomeScreen onRecordClick={() => setShowRecordMenu(true)} isUnlocked={isUnlocked()} points={userPoints} lastYearRecord={lastYearRecord} onNavigate={(path) => {
             if (path === 'record') setShowRecordMenu(true);
             else navigate('/' + path);
-          }} />}
+          }} />} />
           <Route path="/timeline" element={<TimelineScreen isUnlocked={isUnlocked()} data={timelineData} myRecords={myRecords} onRecordClick={() => setShowRecordMenu(true)} points={userPoints} />} />
           <Route path="/reviews" element={<ReviewScreen requests={INITIAL_REVIEW_REQUESTS} onAnswer={(pts) => setUserPoints(prev => prev + pts)} />} />
           <Route path="/cultivation" element={<MyCultivationScreen records={myRecords} onExport={() => setModalType('csv')} inventory={inventory} />} />
