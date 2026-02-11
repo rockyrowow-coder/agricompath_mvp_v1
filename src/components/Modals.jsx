@@ -125,9 +125,10 @@ export function CSVExportModal({ onClose, records }) { // Added records prop
 import { Link } from 'react-router-dom';
 
 export function SettingsModal({ onClose, settings, onUpdate }) {
-    const [localSettings, setLocalSettings] = useState(settings || { ja_id: '', line_info: '', custom_crops: [], custom_methods: [] });
+    const [localSettings, setLocalSettings] = useState(settings || { ja_id: '', line_info: '', custom_crops: [], custom_methods: [], custom_work_types: [] });
     const [newCrop, setNewCrop] = useState('');
     const [newMethod, setNewMethod] = useState('');
+    const [newWorkType, setNewWorkType] = useState('');
     const { user } = useAuth(); // Import this context usage at top if needed, or pass user prop
 
     // Helper to update Supabase
@@ -172,6 +173,21 @@ export function SettingsModal({ onClose, settings, onUpdate }) {
 
     const handleRemoveMethod = (method) => {
         const updated = { ...localSettings, custom_methods: localSettings.custom_methods.filter(m => m !== method) };
+        saveSettings(updated);
+    };
+
+    const handleAddWorkType = () => {
+        if (newWorkType && !localSettings.custom_work_types?.includes(newWorkType)) {
+            const current = localSettings.custom_work_types || [];
+            const updated = { ...localSettings, custom_work_types: [...current, newWorkType] };
+            saveSettings(updated);
+            setNewWorkType('');
+        }
+    };
+
+    const handleRemoveWorkType = (type) => {
+        const current = localSettings.custom_work_types || [];
+        const updated = { ...localSettings, custom_work_types: current.filter(t => t !== type) };
         saveSettings(updated);
     };
 
@@ -256,6 +272,28 @@ export function SettingsModal({ onClose, settings, onUpdate }) {
                                     className="flex-1 text-sm p-2 rounded-lg border border-slate-200 outline-none"
                                 />
                                 <button onClick={handleAddMethod} className="bg-slate-800 text-white px-3 py-2 rounded-lg text-xs font-bold"><Plus size={16} /></button>
+                            </div>
+                        </div>
+                        {/* Custom Work Types */}
+                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                            <label className="text-sm font-bold text-slate-700 mb-2 block">作業項目 (追加登録)</label>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                {localSettings.custom_work_types && localSettings.custom_work_types.map(t => (
+                                    <span key={t} className="bg-white border border-slate-200 px-2 py-1 rounded-lg text-xs font-bold text-slate-600 flex items-center space-x-1">
+                                        <span>{t}</span>
+                                        <button onClick={() => handleRemoveWorkType(t)}><X size={12} /></button>
+                                    </span>
+                                ))}
+                            </div>
+                            <div className="flex space-x-2">
+                                <input
+                                    type="text"
+                                    value={newWorkType}
+                                    onChange={(e) => setNewWorkType(e.target.value)}
+                                    placeholder="新しい作業を入力"
+                                    className="flex-1 text-sm p-2 rounded-lg border border-slate-200 outline-none"
+                                />
+                                <button onClick={handleAddWorkType} className="bg-slate-800 text-white px-3 py-2 rounded-lg text-xs font-bold"><Plus size={16} /></button>
                             </div>
                         </div>
                     </div>
@@ -493,7 +531,12 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
             const end = new Date();
             const start = timerStartTime;
             const diffCols = (end - start) / 1000 / 60; // minutes
-            setFormData({ ...formData, timeEnd: end.toTimeString().slice(0, 5), amount: `${Math.round(diffCols)}分` });
+
+            if (type === 'work' || type === 'tweet' || !type) {
+                setFormData({ ...formData, timeEnd: end.toTimeString().slice(0, 5), amount: `${Math.round(diffCols)}分` });
+            } else {
+                setFormData({ ...formData, timeEnd: end.toTimeString().slice(0, 5) });
+            }
         } else {
             // Start
             setTimerRunning(true);
@@ -513,7 +556,7 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
         setShowMap(false);
     };
 
-    const availableWorkTypes = WORK_TYPES[formData.crop] || ["その他"];
+    const availableWorkTypes = [...(WORK_TYPES[formData.crop] || []), ...(settings?.custom_work_types || ["その他"])];
     const availableInventory = inventory ? inventory.filter(i =>
         type === 'pesticide' ? (i.category === '農薬' || i.category === '除草剤' || i.category === '殺菌剤' || i.category === '殺虫剤') :
             type === 'fertilizer' ? (i.category === '肥料' || i.category === '液肥') : true
@@ -611,6 +654,26 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
                                 </div>
                             )}
                         </div>
+
+                        {/* Timer Logic - Common */}
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="text-xs font-bold text-slate-500">作業時間 (自動計測)</label>
+                                {timerRunning && <span className="text-xs font-bold text-red-500 animate-pulse">● 計測中...</span>}
+                            </div>
+                            <div className="flex space-x-3 items-center">
+                                <button onClick={toggleTimer} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition-all ${timerRunning ? 'bg-red-500 text-white shadow-red-200 shadow-lg' : 'bg-slate-800 text-white shadow-lg'}`}>
+                                    {timerRunning ? <><span className="w-3 h-3 bg-white rounded-sm"></span><span>停止・完了</span></> : <><div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div><span>作業開始</span></>}
+                                </button>
+                                <div className="w-24 text-center">
+                                    <div className="text-xs font-bold text-slate-400">{timerRunning ? "開始" : "結果"}</div>
+                                    <div className="text-lg font-extrabold text-slate-800">
+                                        {timerRunning ? formData.timeStart :
+                                            (type === 'work' ? (formData.amount || "--") : (formData.timeEnd || "--:--"))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </section>
 
                     {type === 'work' && (
@@ -624,22 +687,7 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
                                 </select>
                             </div>
 
-                            {/* Timer Logic */}
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                <div className="flex items-center justify-between mb-3">
-                                    <label className="text-xs font-bold text-slate-500">作業時間 (自動計測)</label>
-                                    {timerRunning && <span className="text-xs font-bold text-red-500 animate-pulse">● 計測中...</span>}
-                                </div>
-                                <div className="flex space-x-3 items-center">
-                                    <button onClick={toggleTimer} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition-all ${timerRunning ? 'bg-red-500 text-white shadow-red-200 shadow-lg' : 'bg-slate-800 text-white shadow-lg'}`}>
-                                        {timerRunning ? <><span className="w-3 h-3 bg-white rounded-sm"></span><span>停止・完了</span></> : <><div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div><span>作業開始</span></>}
-                                    </button>
-                                    <div className="w-24 text-center">
-                                        <div className="text-xs font-bold text-slate-400">実績</div>
-                                        <div className="text-lg font-extrabold text-slate-800">{formData.amount || "0分"}</div>
-                                    </div>
-                                </div>
-                            </div>
+
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">開始</label><input type="time" value={formData.timeStart} onChange={(e) => setFormData({ ...formData, timeStart: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none" /></div>

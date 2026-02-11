@@ -6,10 +6,10 @@ import { Sprout, MessageCircle, Bell, Settings, Camera, Home, ClipboardList, Sta
 import { NavItem } from './Shared';
 import { HomeScreen } from './HomeScreen';
 import { TimelineScreen } from './TimelineScreen';
-import { ReviewScreen } from './ReviewScreen';
+import { ContactScreen } from './ContactScreen';
 import { MyCultivationScreen } from './MyCultivationScreen';
 import { RecordMenuOverlay, RecordModal, SettingsModal, CSVExportModal } from './Modals';
-import { INITIAL_TIMELINE, INITIAL_MY_RECORDS, INITIAL_REVIEW_REQUESTS, INITIAL_INVENTORY } from '../data/constants';
+import { INITIAL_TIMELINE, INITIAL_MY_RECORDS, INITIAL_INVENTORY } from '../data/constants';
 
 export default function FarmerApp() {
     const navigate = useNavigate();
@@ -121,7 +121,7 @@ export default function FarmerApp() {
     const getActiveTab = (pathname) => {
         if (pathname === '/') return 'home';
         if (pathname === '/timeline') return 'timeline';
-        if (pathname === '/reviews') return 'reviews';
+        if (pathname === '/contact') return 'contact';
         if (pathname === '/cultivation') return 'my_cultivation';
         return 'home';
     };
@@ -220,12 +220,29 @@ export default function FarmerApp() {
         }
 
         if ((modalType === 'pesticide' || modalType === 'fertilizer') && newRecord.pesticide) {
-            setInventory(prev => prev.map(item => {
-                if (item.name === newRecord.pesticide) {
-                    return { ...item, quantity: Math.max(0, item.quantity - 1) };
+            const targetItem = inventory.find(i => i.name === newRecord.pesticide);
+            if (targetItem) {
+                const newQuantity = Math.max(0, targetItem.quantity - 1);
+
+                // Update Local State
+                setInventory(prev => prev.map(item => {
+                    if (item.id === targetItem.id) {
+                        return { ...item, quantity: newQuantity };
+                    }
+                    return item;
+                }));
+
+                // Update Supabase
+                const { error: invError } = await supabase
+                    .from('inventory')
+                    .update({ quantity: newQuantity })
+                    .eq('id', targetItem.id);
+
+                if (invError) {
+                    console.error("Error updating inventory:", invError);
+                    // Optionally revert local state or alert, but for MVP logging is ok
                 }
-                return item;
-            }));
+            }
         }
 
         setUserPoints(prev => prev + (modalType !== 'tweet' ? 50 : 10));
@@ -273,7 +290,7 @@ export default function FarmerApp() {
                         else navigate('/' + path);
                     }} />} />
                     <Route path="/timeline" element={<TimelineScreen isUnlocked={isUnlocked()} data={timelineData} myRecords={myRecords} onRecordClick={() => setShowRecordMenu(true)} points={userPoints} />} />
-                    <Route path="/reviews" element={<ReviewScreen requests={INITIAL_REVIEW_REQUESTS} onAnswer={(pts) => setUserPoints(prev => prev + pts)} />} />
+                    <Route path="/contact" element={<ContactScreen />} />
                     <Route path="/cultivation" element={<MyCultivationScreen records={myRecords} onExport={() => setModalType('csv')} inventory={inventory} />} />
                 </Routes>
             </main>
@@ -301,7 +318,7 @@ export default function FarmerApp() {
                         <NavItem icon={<Home size={24} strokeWidth={activeTab === 'home' ? 2.5 : 2} />} label="ホーム" active={activeTab === 'home'} onClick={() => navigate('/')} />
                         <NavItem icon={<ClipboardList size={24} strokeWidth={activeTab === 'timeline' ? 2.5 : 2} />} label="タイムライン" active={activeTab === 'timeline'} onClick={() => navigate('/timeline')} />
                         <div className="w-16"></div>
-                        <NavItem icon={<Star size={24} strokeWidth={activeTab === 'reviews' ? 2.5 : 2} />} label="評価依頼" active={activeTab === 'reviews'} onClick={() => navigate('/reviews')} />
+                        <NavItem icon={<MessageCircle size={24} strokeWidth={activeTab === 'contact' ? 2.5 : 2} />} label="連絡" active={activeTab === 'contact'} onClick={() => navigate('/contact')} />
                         <NavItem icon={<Sprout size={24} strokeWidth={activeTab === 'my_cultivation' ? 2.5 : 2} />} label="MY栽培" active={activeTab === 'my_cultivation'} onClick={() => navigate('/cultivation')} />
                     </div>
                 </nav>

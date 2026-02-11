@@ -7,32 +7,38 @@ import { JA_DOMAIN } from '../data/constants';
 export function LoginScreen() {
     const [loginMode, setLoginMode] = useState('farmer'); // 'farmer' or 'admin'
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isSignUp, setIsSignUp] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const { signIn, signUp } = useAuth();
-    const navigate = useNavigate();
+    const [producerId, setProducerId] = useState('');
+    const [fullName, setFullName] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
-            // Domain Restriction Logic for Admin
-            let emailToUse = email;
-            if (loginMode === 'admin') {
-                if (!email.includes('@')) {
-                    emailToUse = `${email}@${JA_DOMAIN}`;
-                } else if (!email.endsWith(`@${JA_DOMAIN}`)) {
-                    throw new Error(`管理者ログインは @${JA_DOMAIN} のメールアドレスのみ有効です`);
+            // Admin: Removed Domain Restriction (Phase 6 Request)
+            // Farmer: Require Producer ID & Name on Signup
+            if (isSignUp && loginMode === 'farmer') {
+                if (!producerId || !fullName) {
+                    throw new Error('生産者IDと氏名は必須です');
                 }
             }
 
             if (isSignUp) {
-                const { error } = await signUp({ email: emailToUse, password });
+                // Pass metadata to Supabase
+                const { error } = await signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                            producer_id: producerId,
+                            role: loginMode
+                        }
+                    }
+                });
                 if (error) throw error;
                 alert('登録確認メールを送信しました！');
             } else {
-                const { error } = await signIn({ email: emailToUse, password });
+                const { error } = await signIn({ email, password });
                 if (error) throw error;
 
                 // Persist Role
@@ -77,16 +83,43 @@ export function LoginScreen() {
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {isSignUp && loginMode === 'farmer' && (
+                            <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-500 ml-1">生産者番号</label>
+                                    <input
+                                        type="text"
+                                        value={producerId}
+                                        onChange={(e) => setProducerId(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 font-bold text-slate-800 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none"
+                                        placeholder="12345678"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-500 ml-1">氏名</label>
+                                    <input
+                                        type="text"
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 font-bold text-slate-800 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none"
+                                        placeholder="山田 太郎"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-slate-500 ml-1">
-                                {loginMode === 'farmer' ? 'JA組合員番号 (またはメールアドレス)' : '管理者ID (またはメールアドレス)'}
+                                {loginMode === 'farmer' ? 'メールアドレス (またはID)' : 'メールアドレス (または管理者ID)'}
                             </label>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className={`w-full bg-slate-50 border border-slate-200 rounded-xl p-4 font-bold text-slate-800 focus:ring-2 outline-none ${loginMode === 'farmer' ? 'focus:ring-green-100 focus:border-green-500' : 'focus:ring-blue-100 focus:border-blue-500'}`}
-                                placeholder={loginMode === 'farmer' ? '12345678' : 'admin.user'}
+                                placeholder={loginMode === 'farmer' ? 'user@example.com' : 'admin@ja.or.jp'}
                                 required
                             />
                         </div>

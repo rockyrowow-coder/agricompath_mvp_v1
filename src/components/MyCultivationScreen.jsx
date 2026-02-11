@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Layout, CalendarDays, Map as MapIcon, BarChart3, Sprout, Package, Receipt, FileText, Search, Filter, Plus, X, CheckCircle2 } from 'lucide-react';
+import { Download, Layout, CalendarDays, Map as MapIcon, BarChart3, Sprout, Package, Receipt, FileText, Search, Filter, Plus, X, CheckCircle2, Camera } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { RecordTypeBadge } from './Shared';
@@ -10,20 +10,47 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
     const [name, setName] = useState('');
     const [quantity, setQuantity] = useState('');
     const [unit, setUnit] = useState('');
-    const [category, setCategory] = useState('その他'); // Default category
+    const [category, setCategory] = useState('その他');
+    const [receiptUrl, setReceiptUrl] = useState(null);
+    const [uploading, setUploading] = useState(false);
+
+    const handlePhotoUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `receipts/${Math.random()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('images')
+                .upload(fileName, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage.from('images').getPublicUrl(fileName);
+            console.log("Uploaded Receipt URL:", data.publicUrl); // Debug log
+            setReceiptUrl(data.publicUrl);
+        } catch (error) {
+            alert('レシート画像のアップロードに失敗しました: ' + error.message);
+            console.error(error);
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!name || !quantity || !unit || !category) {
-            alert('全ての項目を入力してください。');
+        if (!name || !quantity || !unit || !category || !receiptUrl) {
+            alert('全ての項目（レシート画像含む）を入力してください。');
             return;
         }
-        onSubmit({ name, quantity, unit, category });
+        onSubmit({ name, quantity, unit, category, receiptUrl });
     };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md space-y-4">
+            <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center">
                     <h3 className="text-xl font-bold text-slate-800">資材を登録</h3>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -31,6 +58,21 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
                     </button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Receipt Upload Section */}
+                    <div className="bg-slate-50 rounded-2xl h-40 flex items-center justify-center border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-100 transition-colors relative">
+                        <input type="file" accept="image/*" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" required={!receiptUrl} />
+                        {uploading ? (
+                            <span className="text-slate-400 font-bold animate-pulse">アップロード中...</span>
+                        ) : receiptUrl ? (
+                            <img src={receiptUrl} alt="Receipt" className="h-full object-contain rounded-xl" />
+                        ) : (
+                            <div className="flex flex-col items-center space-y-2 text-slate-400">
+                                <Camera size={32} />
+                                <span className="text-sm font-bold">レシートを撮影 (必須)</span>
+                            </div>
+                        )}
+                    </div>
+
                     <div>
                         <label htmlFor="name" className="block text-sm font-bold text-slate-700 mb-1">資材名</label>
                         <input
@@ -88,7 +130,8 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
                     </div>
                     <button
                         type="submit"
-                        className="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-base hover:bg-green-500 transition-colors flex items-center justify-center space-x-2"
+                        disabled={uploading || !receiptUrl}
+                        className="w-full bg-green-600 disabled:bg-slate-300 text-white py-3 rounded-xl font-bold text-base hover:bg-green-500 transition-colors flex items-center justify-center space-x-2"
                     >
                         <CheckCircle2 size={20} />
                         <span>登録する</span>
@@ -119,7 +162,8 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                     name: newMaterial.name,
                     quantity: parseInt(newMaterial.quantity),
                     unit: newMaterial.unit,
-                    category: newMaterial.category
+                    category: newMaterial.category,
+                    receipt_url: newMaterial.receiptUrl
                 }]);
 
             if (error) throw error;
