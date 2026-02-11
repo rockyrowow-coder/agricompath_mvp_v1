@@ -1,168 +1,127 @@
 import React, { useState } from 'react';
-import { Trophy, AlertCircle, MessageCircle, ArrowRight, UserCheck, Plus } from 'lucide-react';
+import { Trophy, AlertCircle, MessageCircle, ArrowRight, UserCheck, Plus, History, Calendar, ChevronRight } from 'lucide-react';
 import { MOCK_THREADS } from '../data/constants';
 
-export function HomeScreen({ points }) {
+export function HomeScreen({ points, onNavigate, lastYearRecord }) {
     const [tab, setTab] = useState('summary');
 
     return (
-        <div className="space-y-4 bg-slate-50 min-h-full pb-24">
-            {/* Top Tab Switcher */}
-            <div className="bg-white border-b border-slate-200 px-4 pt-2 shadow-sm sticky top-0 z-10">
-                <div className="flex space-x-6">
-                    <button onClick={() => setTab('summary')} className={`pb-3 text-sm font-bold border-b-2 transition-colors ${tab === 'summary' ? 'text-green-600 border-green-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>サマリー</button>
-                    <button onClick={() => setTab('group')} className={`pb-3 text-sm font-bold border-b-2 transition-colors ${tab === 'group' ? 'text-green-600 border-green-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>東部会</button>
-                    <button onClick={() => setTab('official')} className={`pb-3 text-sm font-bold border-b-2 transition-colors ${tab === 'official' ? 'text-green-600 border-green-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>指導員連携</button>
+        <div className="h-full flex flex-col bg-slate-50 overflow-hidden">
+            {/* Top Status Bar (Compact) */}
+            <div className="bg-white px-4 py-3 border-b border-slate-200 shadow-sm flex justify-between items-center shrink-0 z-10">
+                <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 border border-yellow-200">
+                        <Trophy size={16} />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 leading-none">ランク</p>
+                        <p className="text-sm font-extrabold text-slate-800 leading-none">ゴールド <span className="text-xs text-indigo-600">({points}pt)</span></p>
+                    </div>
+                </div>
+                <div className="flex space-x-1">
+                    <button onClick={() => setTab('summary')} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${tab === 'summary' ? 'bg-green-100 text-green-700' : 'text-slate-400 hover:bg-slate-100'}`}>ダッシュボード</button>
+                    <button onClick={() => setTab('notifications')} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${tab === 'notifications' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400 hover:bg-slate-100'}`}>お知らせ</button>
                 </div>
             </div>
 
-            <div className="p-4 space-y-6">
+            {/* Main Content Area (No Scroll / Minimal Scroll) */}
+            <div className="flex-1 p-3 space-y-3 overflow-y-auto">
                 {tab === 'summary' && (
-                    <div className="space-y-6 animate-in fade-in">
-                        {/* Gamification Status */}
-                        <div className="bg-gradient-to-r from-indigo-50 to-white border border-indigo-100 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                        {/* 1. Alert Banner (If critical) */}
+                        <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-start space-x-3 shadow-sm">
+                            <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
                             <div>
-                                <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-1">現在の貢献ランク</p>
-                                <div className="flex items-end space-x-2">
-                                    <span className="text-3xl font-extrabold text-slate-800">ゴールド</span>
-                                    <span className="text-sm font-bold text-indigo-600 pb-1.5">({points}pt)</span>
-                                </div>
-                                <p className="text-[11px] font-medium text-slate-400 mt-1">次のランクまであと250pt</p>
-                            </div>
-                            <div className="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-500 border border-yellow-200 shadow-sm">
-                                <Trophy size={28} />
+                                <h3 className="text-sm font-bold text-red-800">【警報】アザミウマ発生注意</h3>
+                                <p className="text-xs font-bold text-red-600/80 mt-0.5">守山管内で増加中。早期防除を。</p>
                             </div>
                         </div>
 
-                        {/* Alert Banner */}
-                        <div className="bg-red-50 border-l-4 border-l-red-500 border-t border-r border-b border-red-100 rounded-xl p-4 flex items-start space-x-3 shadow-sm">
-                            <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={20} />
-                            <div>
-                                <h3 className="text-sm font-bold text-red-800">【警報】ハスモンヨトウ発生</h3>
-                                <p className="text-xs font-medium text-red-600/80 mt-1 leading-relaxed">JA管内で被害が拡大しています。<br />早期の防除をお願いします。</p>
+                        {/* 2. "1 Year Ago" Widget (Hero) */}
+                        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-2 opacity-10">
+                                <History size={64} />
+                            </div>
+                            <h3 className="text-xs font-bold text-slate-400 flex items-center mb-2">
+                                <Calendar size={12} className="mr-1" /> 昨年の今頃 (2025/6/11)
+                            </h3>
+                            {lastYearRecord ? (
+                                <div className="relative z-10">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <span className="text-lg font-extrabold text-slate-800">{lastYearRecord.detail}</span>
+                                        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{lastYearRecord.crop}</span>
+                                    </div>
+                                    <p className="text-sm font-bold text-slate-600 mb-2">"{lastYearRecord.memo || 'コメントなし'}"</p>
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100">
+                                            {lastYearRecord.pesticide || "作業記録"}
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center py-4 text-slate-400 text-xs font-bold">
+                                    昨年の記録はありません
+                                </div>
+                            )}
+                            <div className="mt-3 border-t border-slate-100 pt-2 flex justify-between items-center cursor-pointer hover:bg-slate-50 rounded-lg -mx-2 px-2 transition-colors" onClick={() => onNavigate('my_cultivation')}>
+                                <span className="text-xs font-bold text-indigo-600">過去の記録をすべて見る</span>
+                                <ChevronRight size={14} className="text-indigo-400" />
                             </div>
                         </div>
 
-                        {/* Schedule / Comparison */}
-                        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-                            <h3 className="text-sm font-bold text-slate-700 flex items-center"><span className="w-1 h-4 bg-green-500 rounded mr-2"></span>栽培タスク予実 (水稲)</h3>
-                            <div className="relative pl-6 border-l-2 border-slate-100 ml-1 py-1">
-                                <div className="absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-slate-300 ring-4 ring-white"></div>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h4 className="font-bold text-slate-800 text-lg">中干し開始</h4>
-                                        <p className="text-xs text-slate-500 mt-1 font-medium">昨年: 6月10日</p>
+                        {/* 3. Big Navigation Buttons */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <button onClick={() => onNavigate('record')} className="bg-green-600 hover:bg-green-500 text-white rounded-2xl p-4 shadow-md shadow-green-100 flex flex-col items-center justify-center space-y-1 transition-transform active:scale-95 h-28">
+                                <Plus size={32} />
+                                <span className="text-lg font-extrabold">記録する</span>
+                                <span className="text-[10px] font-medium opacity-80">日報・防除・施肥</span>
+                            </button>
+                            <div className="space-y-3 flex flex-col">
+                                <button onClick={() => onNavigate('timeline')} className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl px-4 flex items-center justify-between shadow-sm transition-colors">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="bg-blue-50 p-1.5 rounded-lg text-blue-600"><MessageCircle size={18} /></div>
+                                        <div className="text-left">
+                                            <span className="block text-sm font-bold text-slate-700">みんなの記録</span>
+                                            <span className="block text-[10px] text-slate-400">地域の動きを見る</span>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <span className="block text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded border border-green-200 mb-1 inline-block">今年の予定</span>
-                                        <span className="block text-xl font-bold text-slate-800">6月12日</span>
+                                </button>
+                                <button onClick={() => onNavigate('my_cultivation')} className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl px-4 flex items-center justify-between shadow-sm transition-colors">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="bg-orange-50 p-1.5 rounded-lg text-orange-600"><History size={18} /></div>
+                                        <div className="text-left">
+                                            <span className="block text-sm font-bold text-slate-700">MY栽培</span>
+                                            <span className="block text-[10px] text-slate-400">自分の履歴・分析</span>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {tab === 'group' && (
-                    <div className="space-y-4 animate-in fade-in">
-                        {MOCK_THREADS.map(thread => (
-                            <div key={thread.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm transition-all hover:shadow-md active:scale-[0.99]">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{thread.author}</span>
-                                    <span className="text-xs font-medium text-slate-400">{thread.date}</span>
-                                </div>
-                                <h3 className="text-base font-bold text-slate-800 mb-2">{thread.title}</h3>
-                                <p className="text-sm text-slate-600 line-clamp-2 mb-4 leading-relaxed">{thread.content}</p>
-                                <div className="flex items-center space-x-4 border-t border-slate-100 pt-3">
-                                    <button className="flex items-center space-x-1 text-slate-500 text-xs font-bold hover:text-green-600 transition-colors">
-                                        <MessageCircle size={16} /> <span>{thread.replies}件の返信</span>
-                                    </button>
-                                    <button className="flex items-center space-x-1 text-slate-500 text-xs font-bold hover:text-green-600 transition-colors ml-auto">
-                                        <span>スレッドを見る</span> <ArrowRight size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                        <button className="w-full py-4 bg-white hover:bg-slate-50 border-2 border-slate-200 border-dashed rounded-2xl text-slate-500 text-sm font-bold flex items-center justify-center transition-colors">
-                            <Plus size={18} className="mr-2" /> 新しい話題を作成
-                        </button>
-                    </div>
-                )}
-
-                {tab === 'official' && (
-                    <div className="space-y-6 animate-in fade-in">
-                        {/* Reminders - Larger UI */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-                            <h3 className="text-base font-bold text-slate-700 mb-5 flex items-center"><span className="w-1.5 h-5 bg-blue-500 rounded-full mr-3"></span>提出物リマインド</h3>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between p-5 bg-red-50 rounded-2xl border border-red-100 shadow-sm">
-                                    <div>
-                                        <p className="text-base font-bold text-slate-800">6月分防除日誌</p>
-                                        <p className="text-sm font-bold text-red-500 mt-1">期限: <span className="underline decoration-2 underline-offset-2">明日まで</span></p>
-                                    </div>
-                                    <button className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md shadow-red-200 transition-transform active:scale-95">提出する</button>
-                                </div>
-                                <div className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-200 shadow-sm opacity-60">
-                                    <div>
-                                        <p className="text-base font-bold text-slate-800">カメムシ防除計画書</p>
-                                        <p className="text-sm font-bold text-yellow-600 mt-1">期限: 7月10日</p>
-                                    </div>
-                                    <button className="bg-slate-100 text-slate-500 px-6 py-3 rounded-xl text-sm font-bold pointer-events-none">作成中</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Threaded Official Contact */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-                            <div className="flex justify-between items-center mb-5">
-                                <h3 className="text-base font-bold text-slate-700 flex items-center"><span className="w-1.5 h-5 bg-indigo-500 rounded-full mr-3"></span>指導員連携スレッド</h3>
-                                <button className="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors">
-                                    + 新規相談
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                )}
 
-                            <div className="space-y-4">
-                                {/* Thread Item 1 */}
-                                <div className="bg-white p-5 rounded-2xl border border-indigo-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group">
-                                    <div className="absolute right-5 top-5 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-pulse shadow-sm">未読 1件</div>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex items-center space-x-2">
-                                            <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded">栽培相談</span>
-                                            <span className="text-xs text-slate-400 font-bold">最終更新: 10分前</span>
-                                        </div>
-                                    </div>
-                                    <h4 className="text-lg font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">本田1号の葉色診断について</h4>
-                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-3">
-                                        <div className="flex items-center space-x-2 mb-2">
-                                            <UserCheck size={16} className="text-blue-500" />
-                                            <span className="text-xs font-bold text-slate-600">鈴木指導員</span>
-                                        </div>
-                                        <p className="text-sm text-slate-700 leading-relaxed font-medium line-clamp-2">
-                                            先日の診断結果ですが、少し窒素過多の傾向があります。穂肥の量を調整してください。返信をお待ちしています。
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center justify-between text-indigo-600 text-sm font-bold">
-                                        <span className="flex items-center text-slate-400 text-xs"><MessageCircle size={14} className="mr-1" /> 4件のやり取り</span>
-                                        <span className="group-hover:translate-x-1 transition-transform">スレッドを開く &gt;</span>
-                                    </div>
+                {tab === 'notifications' && (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-right-2">
+                        {MOCK_THREADS.map(thread => (
+                            <div key={thread.id} className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{thread.author}</span>
+                                    <span className="text-[10px] font-medium text-slate-400">{thread.date}</span>
                                 </div>
-
-                                {/* Thread Item 2 */}
-                                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer opacity-80 hover:opacity-100">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex items-center space-x-2">
-                                            <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded">事務連絡</span>
-                                            <span className="text-xs text-slate-400 font-bold">最終更新: 3日前</span>
-                                        </div>
-                                    </div>
-                                    <h4 className="text-lg font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">次回の部会集会の日程変更</h4>
-                                    <p className="text-sm text-slate-500 line-clamp-1 mb-3 font-medium">
-                                        了解しました。7/15に参加させていただきます。
-                                    </p>
-                                    <div className="flex items-center justify-between text-indigo-600 text-sm font-bold border-t border-slate-100 pt-3">
-                                        <span className="flex items-center text-slate-400 text-xs"><MessageCircle size={14} className="mr-1" /> 2件のやり取り</span>
-                                        <span className="text-slate-400">完了済み</span>
-                                    </div>
+                                <h3 className="text-sm font-bold text-slate-800 mb-1">{thread.title}</h3>
+                                <p className="text-xs text-slate-600 line-clamp-2 mb-2 leading-relaxed">{thread.content}</p>
+                                <button className="text-indigo-600 text-xs font-bold flex items-center">
+                                    詳細を見る <ChevronRight size={12} />
+                                </button>
+                            </div>
+                        ))}
+                        {/* Official Reminders */}
+                        <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
+                            <h4 className="text-xs font-bold text-blue-800 mb-2 flex items-center"><AlertCircle size={12} className="mr-1" /> 提出リマインド</h4>
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-blue-100">
+                                    <span className="text-xs font-bold text-slate-700">防除日誌 (5月分)</span>
+                                    <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded">明日まで</span>
                                 </div>
                             </div>
                         </div>

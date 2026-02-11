@@ -146,10 +146,47 @@ export default function App() {
 
   const isUnlocked = () => {
     if (!lastRecordTime) return false;
-    const oneDay = 24 * 60 * 60 * 1000;
-    // eslint-disable-next-line
-    return (Date.now() - lastRecordTime) < oneDay;
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    return (Date.now() - lastRecordTime) < sevenDays;
   };
+
+  // Helper to find "1 Year Ago" record
+  const getOneYearAgoRecord = () => {
+    // For MVP/Demo, our "Today" might be dynamic, but let's look for records approx 365 days ago.
+    // If strict 365 days doesn't match, find closest within that month for demo purposes.
+    // In a real app, we'd query DB for date range.
+    // Here we check `myRecords` (which includes INITIAL_MY_RECORDS).
+
+    // Mocking "Today" as 2024-06-12 for demo consistency if needed, but let's use real date.
+    const today = new Date();
+    const lastYear = new Date(today);
+    lastYear.setFullYear(today.getFullYear() - 1);
+
+    // Simple find: look for same month/year
+    // For the specific user request "Last year this time", we'll grab from our mock data `INITIAL_MY_RECORDS`
+    // which we updated in constants.js to have 2023-06 data.
+
+    if (!myRecords || myRecords.length === 0) return null;
+
+    // Sort by date desending just in case
+    // Find closest to lastYear
+    const closest = myRecords.reduce((prev, curr) => {
+      const prevDate = new Date(prev.date);
+      const currDate = new Date(curr.date);
+      const targetDate = lastYear;
+
+      return (Math.abs(currDate - targetDate) < Math.abs(prevDate - targetDate) ? curr : prev);
+    });
+
+    // Only return if it's actually from last year (tolerance of 30 days)
+    const diffTime = Math.abs(new Date(closest.date) - lastYear);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 60) return closest; // Liberal window for demo content
+    return null;
+  };
+
+  const lastYearRecord = getOneYearAgoRecord();
 
   const openRecordForm = (type) => {
     setModalType(type);
@@ -275,8 +312,11 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide bg-slate-50">
         <Routes>
-          <Route path="/" element={<HomeScreen onRecordClick={() => setShowRecordMenu(true)} isUnlocked={isUnlocked()} points={userPoints} />} />
-          <Route path="/timeline" element={<TimelineScreen isUnlocked={isUnlocked()} data={timelineData} onRecordClick={() => setShowRecordMenu(true)} points={userPoints} />} />
+          <Route path="/" element={<HomeScreen onRecordClick={() => setShowRecordMenu(true)} isUnlocked={isUnlocked()} points={userPoints} lastYearRecord={lastYearRecord} onNavigate={(path) => {
+            if (path === 'record') setShowRecordMenu(true);
+            else navigate('/' + path);
+          }} />}
+          <Route path="/timeline" element={<TimelineScreen isUnlocked={isUnlocked()} data={timelineData} myRecords={myRecords} onRecordClick={() => setShowRecordMenu(true)} points={userPoints} />} />
           <Route path="/reviews" element={<ReviewScreen requests={INITIAL_REVIEW_REQUESTS} onAnswer={(pts) => setUserPoints(prev => prev + pts)} />} />
           <Route path="/cultivation" element={<MyCultivationScreen records={myRecords} onExport={() => setModalType('csv')} inventory={inventory} />} />
           <Route path="/login" element={<LoginScreen />} />
