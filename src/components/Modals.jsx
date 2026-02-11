@@ -24,30 +24,47 @@ export function CSVExportModal({ onClose, records }) { // Added records prop
     };
 
     const handleExport = () => {
-        const dataToExport = records.filter(r => selectedIds.includes(r.id));
+        // Filter for JA Report (Pesticide & Fertilizer only)
+        const dataToExport = records
+            .filter(r => selectedIds.includes(r.id))
+            .filter(r => r.type === 'pesticide' || r.type === 'fertilizer');
 
-        // Generate CSV content
-        const headers = ["日付", "種類", "作物", "詳細", "数値/金額", "圃場", "範囲", "メモ"];
-        const csvContent = [
-            headers.join(","),
-            ...dataToExport.map(r => [
-                r.date,
-                r.type,
-                r.crop,
-                r.detail,
-                r.amount,
-                r.field,
-                r.range,
-                `"${r.memo || ''}"`
-            ].join(","))
-        ].join("\n");
+        if (dataToExport.length === 0) {
+            alert("防除・施肥記録が選択されていません。");
+            return;
+        }
 
-        // Download
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        // Generate CSV content (JA Submission Format)
+        // Headers: 日付, 圃場, 作物, 農薬・肥料名, 倍率, 使用量, 使用方法
+        const headers = ["日付", "圃場", "作物", "農薬・肥料名", "倍率", "使用量", "使用方法"];
+
+        const csvRows = dataToExport.map(r => {
+            // Safe handling for CSV fields (quotes if needed)
+            const safe = (val) => {
+                if (val === null || val === undefined) return "";
+                const str = String(val);
+                return str.includes(",") ? `"${str}"` : str;
+            };
+
+            return [
+                safe(r.date),
+                safe(r.field),
+                safe(r.crop),
+                safe(r.pesticide || r.detail), // Pesticide name or Fertilizer name
+                safe(r.dilution ? `${r.dilution}倍` : '-'),
+                safe(r.amount),
+                safe(r.method || '-')
+            ].join(",");
+        });
+
+        const csvContent = [headers.join(","), ...csvRows].join("\n");
+
+        // Download with BOM for Excel compatibility
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `cultivation_data_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.setAttribute("download", `JA_cultivation_report_${new Date().toISOString().slice(0, 10)}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -105,6 +122,8 @@ export function CSVExportModal({ onClose, records }) { // Added records prop
     );
 }
 
+import { Link } from 'react-router-dom';
+
 export function SettingsModal({ onClose }) {
     return (
         <div className="fixed inset-0 z-50 bg-slate-900/20 backdrop-blur-sm flex justify-end">
@@ -116,6 +135,12 @@ export function SettingsModal({ onClose }) {
                 <div className="p-6 space-y-8 overflow-y-auto">
                     <div className="space-y-3">
                         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">アカウント</h3>
+                        <Link to="/login" onClick={onClose} className="block">
+                            <div className="bg-slate-50 rounded-2xl p-5 flex items-center justify-between border border-slate-100 hover:bg-slate-100 transition-colors cursor-pointer">
+                                <span className="font-bold text-green-600">ログイン / 新規登録</span>
+                                <ChevronRight size={20} className="text-green-600" />
+                            </div>
+                        </Link>
                         <div className="bg-slate-50 rounded-2xl p-5 flex items-center justify-between border border-slate-100 hover:bg-slate-100 transition-colors cursor-pointer">
                             <span className="font-bold text-slate-700">プロフィール編集</span>
                             <ChevronRight size={20} className="text-slate-400" />
