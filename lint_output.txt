@@ -1,0 +1,4 @@
+
+> agricompath0211@0.0.0 lint
+> eslint .
+
