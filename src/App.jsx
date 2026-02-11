@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Sprout, MessageCircle, Bell, Settings, Camera, Home, ClipboardList, Star, CheckCircle2 } from 'lucide-react';
 import { NavItem } from './components/Shared';
 import { HomeScreen } from './components/HomeScreen';
@@ -9,7 +10,8 @@ import { RecordMenuOverlay, RecordModal, SettingsModal, CSVExportModal } from '.
 import { INITIAL_TIMELINE, INITIAL_MY_RECORDS, INITIAL_REVIEW_REQUESTS, INITIAL_INVENTORY } from './data/constants';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Modals & Overlays
   const [showRecordMenu, setShowRecordMenu] = useState(false);
@@ -20,29 +22,29 @@ export default function App() {
   const [lastRecordTime, setLastRecordTime] = useState(null);
   const [timelineData, setTimelineData] = useState(INITIAL_TIMELINE);
   const [myRecords, setMyRecords] = useState(INITIAL_MY_RECORDS);
-  const [inventory, setInventory] = useState(INITIAL_INVENTORY); // Added Inventory State
+  const [inventory, setInventory] = useState(INITIAL_INVENTORY);
   const [notification, setNotification] = useState(null);
 
+  // Determine active tab based on path
+  const getActiveTab = (pathname) => {
+    if (pathname === '/') return 'home';
+    if (pathname === '/timeline') return 'timeline';
+    if (pathname === '/reviews') return 'reviews';
+    if (pathname === '/cultivation') return 'my_cultivation';
+    return 'home';
+  };
+
+  const activeTab = getActiveTab(location.pathname);
+
   const isUnlocked = () => {
-    // 24-hour strict lock rule
     if (!lastRecordTime) return false;
     const oneDay = 24 * 60 * 60 * 1000;
     // eslint-disable-next-line
     return (Date.now() - lastRecordTime) < oneDay;
   };
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'home': return <HomeScreen onRecordClick={() => setShowRecordMenu(true)} isUnlocked={isUnlocked()} points={userPoints} />;
-      case 'timeline': return <TimelineScreen isUnlocked={isUnlocked()} data={timelineData} onRecordClick={() => setShowRecordMenu(true)} points={userPoints} />;
-      case 'reviews': return <ReviewScreen requests={INITIAL_REVIEW_REQUESTS} onAnswer={(pts) => setUserPoints(prev => prev + pts)} />;
-      case 'my_cultivation': return <MyCultivationScreen records={myRecords} onExport={() => setModalType('csv')} inventory={inventory} />;
-      default: return <HomeScreen onRecordClick={() => setShowRecordMenu(true)} isUnlocked={isUnlocked()} points={userPoints} />;
-    }
-  };
-
   const openRecordForm = (type) => {
-    setModalType(type); // Fixed to use setModalType
+    setModalType(type);
     setShowRecordMenu(false);
   };
 
@@ -53,7 +55,6 @@ export default function App() {
     if ((modalType === 'pesticide' || modalType === 'fertilizer') && newRecord.pesticide) {
       setInventory(prev => prev.map(item => {
         if (item.name === newRecord.pesticide) {
-          // Simple deduction: -1 unit per use. In a real app, parse newRecord.amount
           return { ...item, quantity: Math.max(0, item.quantity - 1) };
         }
         return item;
@@ -67,10 +68,9 @@ export default function App() {
       setUserPoints(prev => prev + 10);
     }
 
-    // Create Timeline Entry
     const timelineEntry = {
       id: timestamp,
-      type: modalType, // Fixed to use modalType
+      type: modalType,
       user: "あなた (自分)",
       isFollowed: true,
       crop: newRecord.crop || "ー",
@@ -81,7 +81,7 @@ export default function App() {
       method: newRecord.method,
       range: newRecord.range,
       duration: newRecord.duration,
-      title: modalType === 'tweet' ? 'つぶやき' : (newRecord.pesticide || `${modalType === 'fertilizer' ? '施肥' : '作業'}`), // Fixed title logic
+      title: modalType === 'tweet' ? 'つぶやき' : (newRecord.pesticide || `${modalType === 'fertilizer' ? '施肥' : '作業'}`),
       comment: newRecord.memo,
       tags: ["#記録済み", ...(modalType === 'tweet' ? ["#つぶやき"] : [])],
       hasImage: true,
@@ -89,18 +89,17 @@ export default function App() {
       hasLiked: false
     };
 
-    // Create My Record Entry
     const myRecordEntry = {
       id: timestamp,
       date: newRecord.date || new Date().toISOString().split('T')[0],
-      type: modalType, // Fixed to use modalType
+      type: modalType,
       crop: newRecord.crop || "ー",
       detail: modalType === 'pesticide' || modalType === 'fertilizer' ? newRecord.pesticide :
         modalType === 'tweet' ? 'つぶやき' :
-          modalType === 'accounting' ? newRecord.workType : // Use Category for Accounting
+          modalType === 'accounting' ? newRecord.workType :
             newRecord.workType || newRecord.memo,
       amount: modalType === 'pesticide' ? `${newRecord.dilution}倍` :
-        modalType === 'accounting' ? `¥${newRecord.amount}` : // Format Currency
+        modalType === 'accounting' ? `¥${newRecord.amount}` :
           (newRecord.amount || '-'),
       field: newRecord.field || "-",
       timeStart: newRecord.timeStart,
@@ -112,9 +111,10 @@ export default function App() {
     setTimelineData([timelineEntry, ...timelineData]);
     setMyRecords([myRecordEntry, ...myRecords]);
 
-    setModalType(null); // Close modal
+    setModalType(null);
 
-    setActiveTab('timeline');
+    // Navigate to timeline after submission
+    navigate('/timeline');
     setNotification(`記録完了！ +${modalType !== 'tweet' ? 50 : 10}pt`);
 
     setTimeout(() => setNotification(null), 4000);
@@ -147,7 +147,12 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide bg-slate-50">
-        {renderContent()}
+        <Routes>
+          <Route path="/" element={<HomeScreen onRecordClick={() => setShowRecordMenu(true)} isUnlocked={isUnlocked()} points={userPoints} />} />
+          <Route path="/timeline" element={<TimelineScreen isUnlocked={isUnlocked()} data={timelineData} onRecordClick={() => setShowRecordMenu(true)} points={userPoints} />} />
+          <Route path="/reviews" element={<ReviewScreen requests={INITIAL_REVIEW_REQUESTS} onAnswer={(pts) => setUserPoints(prev => prev + pts)} />} />
+          <Route path="/cultivation" element={<MyCultivationScreen records={myRecords} onExport={() => setModalType('csv')} inventory={inventory} />} />
+        </Routes>
       </main>
 
       {/* Central Record Menu Overlay */}
@@ -170,11 +175,11 @@ export default function App() {
         </div>
         <nav className="bg-white/95 backdrop-blur border-t border-slate-100 pb-safe pt-2 pointer-events-auto rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
           <div className="flex justify-between items-end h-16 px-4">
-            <NavItem icon={<Home size={24} strokeWidth={activeTab === 'home' ? 2.5 : 2} />} label="ホーム" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-            <NavItem icon={<ClipboardList size={24} strokeWidth={activeTab === 'timeline' ? 2.5 : 2} />} label="タイムライン" active={activeTab === 'timeline'} onClick={() => setActiveTab('timeline')} />
+            <NavItem icon={<Home size={24} strokeWidth={activeTab === 'home' ? 2.5 : 2} />} label="ホーム" active={activeTab === 'home'} onClick={() => navigate('/')} />
+            <NavItem icon={<ClipboardList size={24} strokeWidth={activeTab === 'timeline' ? 2.5 : 2} />} label="タイムライン" active={activeTab === 'timeline'} onClick={() => navigate('/timeline')} />
             <div className="w-16"></div>
-            <NavItem icon={<Star size={24} strokeWidth={activeTab === 'reviews' ? 2.5 : 2} />} label="評価依頼" active={activeTab === 'reviews'} onClick={() => setActiveTab('reviews')} />
-            <NavItem icon={<Sprout size={24} strokeWidth={activeTab === 'my_cultivation' ? 2.5 : 2} />} label="MY栽培" active={activeTab === 'my_cultivation'} onClick={() => setActiveTab('my_cultivation')} />
+            <NavItem icon={<Star size={24} strokeWidth={activeTab === 'reviews' ? 2.5 : 2} />} label="評価依頼" active={activeTab === 'reviews'} onClick={() => navigate('/reviews')} />
+            <NavItem icon={<Sprout size={24} strokeWidth={activeTab === 'my_cultivation' ? 2.5 : 2} />} label="MY栽培" active={activeTab === 'my_cultivation'} onClick={() => navigate('/cultivation')} />
           </div>
         </nav>
       </div>
