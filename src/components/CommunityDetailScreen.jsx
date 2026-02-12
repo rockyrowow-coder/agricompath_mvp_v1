@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Send, Image as ImageIcon, Users } from 'lucide-react';
+import { ArrowLeft, Send, Image as ImageIcon, Users, AlertTriangle, MessageCircle } from 'lucide-react';
 
 export function CommunityDetailScreen() {
     const { id } = useParams();

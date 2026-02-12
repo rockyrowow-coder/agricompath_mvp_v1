@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Download, ChevronRight, CheckCircle2, Camera, Timer, Beaker, ClipboardList, Mic, Plus, MapPin, Search, AlertTriangle, MessageCircle } from 'lucide-react';
+import { X, FileText, Download, ChevronRight, CheckCircle2, Camera, Timer, Beaker, ClipboardList, Mic, Plus, MapPin, Search, AlertTriangle, MessageCircle, Calculator } from 'lucide-react';
 import { MapSelector } from './MapSelector';
 import { supabase } from '../lib/supabase';
 import { MOCK_CROPS, MOCK_FIELDS, MOCK_WORKERS, MOCK_PESTICIDES, MOCK_METHODS, MOCK_TARGETS, WORK_TYPES, SPREADING_METHODS, MOCK_PESTICIDES_EXTENDED, INCOMPATIBLE_MIXES } from '../data/constants';
