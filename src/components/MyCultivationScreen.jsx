@@ -6,13 +6,23 @@ import { RecordTypeBadge } from './Shared';
 import { MOCK_AI_TAGS } from '../data/constants';
 
 // MaterialRegisterModal component
+// MaterialRegisterModal component
 const MaterialRegisterModal = ({ onClose, onSubmit }) => {
     const [name, setName] = useState('');
     const [quantity, setQuantity] = useState('');
     const [unit, setUnit] = useState('');
     const [category, setCategory] = useState('その他');
+    const [price, setPrice] = useState(''); // New Field
+    const [location, setLocation] = useState(''); // New Field
     const [receiptUrl, setReceiptUrl] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [analyzing, setAnalyzing] = useState(false); // AI Analysis State
+
+    // Mock Suggestions for Search
+    const SUGGESTIONS = [
+        "ダコニール1000", "アファーム乳剤", "モスピラン", "コテツフロアブル",
+        "オルトラン", "ラウンドアップ", "マグホス", "尿素", "液肥トップワン"
+    ];
 
     const handlePhotoUpload = async (e) => {
         const file = e.target.files[0];
@@ -29,8 +39,12 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
             if (uploadError) throw uploadError;
 
             const { data } = supabase.storage.from('images').getPublicUrl(fileName);
-            console.log("Uploaded Receipt URL:", data.publicUrl); // Debug log
+            console.log("Uploaded Receipt URL:", data.publicUrl);
             setReceiptUrl(data.publicUrl);
+
+            // Simulate AI OCR Analysis
+            analyzeReceipt(file);
+
         } catch (error) {
             alert('レシート画像のアップロードに失敗しました: ' + error.message);
             console.error(error);
@@ -39,102 +53,163 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
         }
     };
 
+    const analyzeReceipt = (file) => {
+        setAnalyzing(true);
+        setTimeout(() => {
+            // Mock AI Result
+            setName("ダコニール1000");
+            setPrice("1280");
+            setLocation("コメリパワー");
+            setQuantity("1");
+            setUnit("本");
+            setCategory("農薬");
+            setAnalyzing(false);
+            alert("✨ AIがレシートか情報を読み取りました！");
+        }, 1500);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!name || !quantity || !unit || !category || !receiptUrl) {
-            alert('全ての項目（レシート画像含む）を入力してください。');
+        if (!name || !quantity || !unit || !category) {
+            alert('必須項目（資材名、数量、単位、カテゴリ）を入力してください。');
             return;
         }
-        onSubmit({ name, quantity, unit, category, receiptUrl });
+        // Receipt is optional now if user manually inputs, but encouraged
+        onSubmit({
+            name,
+            quantity,
+            unit,
+            category,
+            price: price ? parseInt(price) : null,
+            location,
+            receiptUrl
+        });
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white p-6 rounded-3xl shadow-xl w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-slate-800">資材を登録</h3>
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center">
+                        <Package className="mr-2 text-green-600" /> 資材を登録
+                    </h3>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
                         <X size={24} />
                     </button>
                 </div>
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Receipt Upload Section */}
-                    <div className="bg-slate-50 rounded-2xl h-40 flex items-center justify-center border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-100 transition-colors relative">
-                        <input type="file" accept="image/*" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" required={!receiptUrl} />
-                        {uploading ? (
+                    <div className="bg-slate-50 rounded-2xl h-48 flex items-center justify-center border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-100 transition-colors relative group">
+                        <input type="file" accept="image/*" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                        {analyzing ? (
+                            <div className="flex flex-col items-center animate-pulse">
+                                <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                <span className="text-slate-500 font-bold">AI解析中...</span>
+                            </div>
+                        ) : uploading ? (
                             <span className="text-slate-400 font-bold animate-pulse">アップロード中...</span>
                         ) : receiptUrl ? (
-                            <img src={receiptUrl} alt="Receipt" className="h-full object-contain rounded-xl" />
+                            <div className="relative w-full h-full p-2">
+                                <img src={receiptUrl} alt="Receipt" className="w-full h-full object-contain rounded-xl" />
+                                <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">再撮影</div>
+                            </div>
                         ) : (
-                            <div className="flex flex-col items-center space-y-2 text-slate-400">
-                                <Camera size={32} />
-                                <span className="text-sm font-bold">レシートを撮影 (必須)</span>
+                            <div className="flex flex-col items-center space-y-2 text-slate-400 group-hover:text-green-600 transition-colors">
+                                <Camera size={40} />
+                                <span className="text-sm font-bold">レシート/現物を撮影</span>
+                                <span className="text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full">AI自動入力</span>
                             </div>
                         )}
                     </div>
 
-                    <div>
-                        <label htmlFor="name" className="block text-sm font-bold text-slate-700 mb-1">資材名</label>
-                        <input
-                            type="text"
-                            id="name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-medium"
-                            placeholder="例: 殺虫剤、化成肥料"
-                            required
-                        />
-                    </div>
-                    <div className="flex space-x-4">
-                        <div className="flex-1">
-                            <label htmlFor="quantity" className="block text-sm font-bold text-slate-700 mb-1">数量</label>
-                            <input
-                                type="number"
-                                id="quantity"
-                                value={quantity}
-                                onChange={(e) => setQuantity(e.target.value)}
-                                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-medium"
-                                placeholder="例: 10"
-                                min="0"
-                                required
-                            />
+                    <div className="grid grid-cols-1 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">資材名 (検索・入力)</label>
+                            <div className="relative">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    list="material-suggestions"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-bold text-slate-800"
+                                    placeholder="例: ダコニール"
+                                />
+                                <datalist id="material-suggestions">
+                                    {SUGGESTIONS.map(s => <option key={s} value={s} />)}
+                                </datalist>
+                            </div>
                         </div>
-                        <div className="flex-1">
-                            <label htmlFor="unit" className="block text-sm font-bold text-slate-700 mb-1">単位</label>
-                            <input
-                                type="text"
-                                id="unit"
-                                value={unit}
-                                onChange={(e) => setUnit(e.target.value)}
-                                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-medium"
-                                placeholder="例: 袋、L、kg"
-                                required
-                            />
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">カテゴリ</label>
+                                <select
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-bold text-slate-800 appearance-none"
+                                >
+                                    <option value="農薬">農薬</option>
+                                    <option value="肥料">肥料</option>
+                                    <option value="種子">種子</option>
+                                    <option value="資材">資材</option>
+                                    <option value="その他">その他</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">購入場所</label>
+                                <input
+                                    type="text"
+                                    value={location}
+                                    onChange={(e) => setLocation(e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-bold text-slate-800"
+                                    placeholder="例: コメリ"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">数量</label>
+                                <input
+                                    type="number"
+                                    value={quantity}
+                                    onChange={(e) => setQuantity(e.target.value)}
+                                    className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-bold text-slate-800"
+                                    placeholder="10"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">単位</label>
+                                <input
+                                    type="text"
+                                    value={unit}
+                                    onChange={(e) => setUnit(e.target.value)}
+                                    className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-bold text-slate-800"
+                                    placeholder="袋/L"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">金額 (円)</label>
+                                <input
+                                    type="number"
+                                    value={price}
+                                    onChange={(e) => setPrice(e.target.value)}
+                                    className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-bold text-slate-800"
+                                    placeholder="1280"
+                                />
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <label htmlFor="category" className="block text-sm font-bold text-slate-700 mb-1">カテゴリ</label>
-                        <select
-                            id="category"
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-medium appearance-none"
-                            required
-                        >
-                            <option value="農薬">農薬</option>
-                            <option value="肥料">肥料</option>
-                            <option value="種子">種子</option>
-                            <option value="資材">資材</option>
-                            <option value="その他">その他</option>
-                        </select>
-                    </div>
+
                     <button
                         type="submit"
-                        disabled={uploading || !receiptUrl}
-                        className="w-full bg-green-600 disabled:bg-slate-300 text-white py-3 rounded-xl font-bold text-base hover:bg-green-500 transition-colors flex items-center justify-center space-x-2"
+                        disabled={uploading}
+                        className="w-full bg-slate-900 disabled:bg-slate-400 text-white py-4 rounded-xl font-bold text-base hover:bg-slate-800 transition-colors flex items-center justify-center space-x-2 shadow-lg shadow-slate-200"
                     >
                         <CheckCircle2 size={20} />
-                        <span>登録する</span>
+                        <span>在庫に登録する</span>
                     </button>
                 </form>
             </div>
@@ -292,6 +367,8 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                     quantity: parseInt(newMaterial.quantity),
                     unit: newMaterial.unit,
                     category: newMaterial.category,
+                    price: newMaterial.price,
+                    location: newMaterial.location,
                     receipt_url: newMaterial.receiptUrl
                 }]);
 

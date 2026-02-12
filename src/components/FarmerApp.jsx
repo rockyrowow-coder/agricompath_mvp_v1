@@ -264,6 +264,14 @@ export default function FarmerApp() {
             is_public: !!isPublic
         };
 
+        if (!user) {
+            alert('ログアウト状態のため、記録を保存できません。再ログインしてください。');
+            return;
+        }
+
+        // Ensure numeric fields are correctly formatted if needed, though Supabase handles text fine often.
+        // For safety, we keep as is but ensure `amount` is not undefined.
+
         if (user) {
             const { data, error } = await supabase
                 .from('records')
@@ -272,7 +280,7 @@ export default function FarmerApp() {
 
             if (error) {
                 console.error('Error inserting record:', error);
-                alert('記録の保存に失敗しました');
+                alert(`記録の保存に失敗しました: ${error.message}`);
                 return;
             }
 
