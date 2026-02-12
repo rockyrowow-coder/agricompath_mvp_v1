@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { X, FileText, Download, ChevronRight, CheckCircle2, Camera, Timer, Beaker, ClipboardList, Mic, Plus, MapPin, Search, AlertTriangle } from 'lucide-react';
 import { MenuButton } from './Shared';
 import { MapSelector } from './MapSelector';
@@ -121,7 +123,7 @@ export function CSVExportModal({ onClose, records }) { // Added records prop
     );
 }
 
-import { Link } from 'react-router-dom';
+
 
 // ProfileSettingsModal component
 export const ProfileSettingsModal = ({ user, onClose }) => {
@@ -528,8 +530,7 @@ export function RecordMenuOverlay({ onClose, onSelect }) {
 
 
 
-import { supabase } from '../lib/supabase'; // Needed for storage upload
-import { useAuth } from '../contexts/AuthContext'; // Needed for user ID in settings
+
 
 export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
     const [formData, setFormData] = useState({
