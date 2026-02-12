@@ -99,7 +99,7 @@ export function CommunityScreen() {
 
             alert('コミュニティを作成しました！');
             setNewCommunityName('');
-            setNewCommunityName('');
+
             setNewCommunityDesc('');
             setRepEmail('');
             setRepPhone('');
@@ -289,7 +289,7 @@ export function CommunityScreen() {
                         </div>
                     </div>
                 </div>
-                </div>
+            </div>
     )
 }
         </div >
