@@ -145,6 +145,7 @@ export default function FarmerApp() {
                                 isFollowed: true, // Show in Following tab
                                 author: 'メンバー',
                                 community: p.communities?.name,
+                                community_id: p.community_id,
                                 timestamp: new Date(p.created_at)
                             }))];
                         }
@@ -172,6 +173,7 @@ export default function FarmerApp() {
                                     user: 'コミュニティメンバー', // Generic name
                                     isFollowed: true, // Show in Following tab
                                     community: 'コミュニティ共有',
+                                    community_id: s.community_id,
                                     timestamp: new Date(r.created_at)
                                 }));
                             communityTimelineItems = [...communityTimelineItems, ...sharedRecords];
@@ -397,7 +399,7 @@ export default function FarmerApp() {
                         if (path === 'record') setShowRecordMenu(true);
                         else navigate('/' + path);
                     }} />} />
-                    <Route path="/timeline" element={<TimelineScreen isUnlocked={isUnlocked()} data={timelineData} myRecords={myRecords} onRecordClick={() => setShowRecordMenu(true)} points={userPoints} />} />
+                    <Route path="/timeline" element={<TimelineScreen isUnlocked={isUnlocked()} data={timelineData} myRecords={myRecords} joinedCommunities={joinedCommunities} onRecordClick={() => setShowRecordMenu(true)} points={userPoints} />} />
                     <Route path="/contact" element={<ContactScreen />} />
                     <Route path="/community" element={<CommunityScreen />} />
                     <Route path="/community/:id" element={<CommunityDetailScreen />} />

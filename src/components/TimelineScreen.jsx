@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { ThumbsUp, MessageCircle, ImageIcon, Plus, Lock, Trophy, Filter, Search, MapPin, Sprout, Activity, History } from 'lucide-react';
 import { RecordTypeBadge } from './Shared';
 
-export function TimelineScreen({ isUnlocked, data, myRecords, onRecordClick }) {
-    const [activeTab, setActiveTab] = useState("recommended"); // 'recommended', 'following', 'department', 'my_past'
+export function TimelineScreen({ isUnlocked, data, myRecords, joinedCommunities = [], onRecordClick }) {
+    const [activeTab, setActiveTab] = useState("recommended"); // 'recommended', 'following', 'my_past', or community_id
     const [activeSubTab, setActiveSubTab] = useState("records"); // 'records', 'tweets'
     const [filterOpen, setFilterOpen] = useState(false);
 
@@ -19,9 +19,9 @@ export function TimelineScreen({ isUnlocked, data, myRecords, onRecordClick }) {
         user: "自分",
         isFollowed: false,
         crop: r.crop,
-        date: r.date, // Format might need adjustment if not "YYYY-MM-DD"
+        date: r.date,
         pesticide: r.pesticide,
-        dilution: r.amount ? r.amount.replace('倍', '') : '', // rough extract
+        dilution: r.amount ? r.amount.replace('倍', '') : '',
         method: "-",
         range: r.range,
         comment: r.memo || (r.type === 'work' ? r.workType : r.detail),
@@ -40,19 +40,18 @@ export function TimelineScreen({ isUnlocked, data, myRecords, onRecordClick }) {
 
         return sourceData.filter(item => {
             // Main Tab Logic
-            if (tab === 'department') {
-                if (!item.isOfficial) return false;
-            } else if (tab === 'following') {
+            if (tab === 'following') {
                 if (!item.isFollowed || item.isOfficial) return false;
             } else if (tab === 'recommended') {
                 if (item.isFollowed || item.isOfficial || item.isMine) return false;
             } else if (tab === 'my_past') {
                 if (!item.isMine) return false;
+            } else {
+                // Community Tab (ID)
+                if (item.community_id !== tab) return false;
             }
 
-            // Sub Tab Logic (except for specific logic like Department might show all)
-            // Department might want to separate too, but let's apply to all for consistency
-            // My Past usually shows all records
+            // Sub Tab Logic
             if (tab !== 'my_past') {
                 if (subTab === 'tweets' && item.type !== 'tweet') return false;
                 if (subTab === 'records' && item.type === 'tweet') return false;
@@ -69,27 +68,56 @@ export function TimelineScreen({ isUnlocked, data, myRecords, onRecordClick }) {
 
     const displayData = getFilteredData(activeTab, activeSubTab);
 
-    // Mock Trending Data (Just picking some items for display)
-    const trendingData = data.filter(i => i.likes > 10).slice(0, 3);
-    const newRecordsCount = 18; // Mock for Moriyama area
+    // Mock Trending Data
+    const newRecordsCount = 18;
 
     return (
         <div className="bg-slate-50 min-h-full pb-24">
             {/* Header / Tabs */}
             <div className="sticky top-0 bg-white/95 backdrop-blur z-20 border-b border-slate-200 shadow-sm">
-                <div className="flex px-2 pt-2 pb-0 space-x-1 overflow-x-auto no-scrollbar">
-                    {['recommended', 'following', 'department', 'my_past'].map(tab => (
+                <div className="flex items-center">
+                    {/* Scrollable Area */}
+                    <div className="flex-1 overflow-x-auto no-scrollbar flex px-2 pt-2 pb-0 space-x-1">
                         <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`flex-1 min-w-[22%] pb-3 text-xs font-bold border-b-2 transition-colors text-center whitespace-nowrap ${activeTab === tab ? 'text-green-600 border-green-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+                            onClick={() => setActiveTab('recommended')}
+                            className={`min-w-[4.5rem] pb-2 text-xs font-bold border-b-2 transition-colors text-center whitespace-nowrap ${activeTab === 'recommended' ? 'text-green-600 border-green-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
                         >
-                            {tab === 'recommended' ? 'おすすめ' : tab === 'following' ? 'フォロー中' : tab === 'department' ? '部会・公式' : 'MY過去'}
+                            おすすめ
                         </button>
-                    ))}
+                        <button
+                            onClick={() => setActiveTab('following')}
+                            className={`min-w-[4.5rem] pb-2 text-xs font-bold border-b-2 transition-colors text-center whitespace-nowrap ${activeTab === 'following' ? 'text-green-600 border-green-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+                        >
+                            フォロー中
+                        </button>
+
+                        {/* Dynamic Community Tabs */}
+                        {joinedCommunities.map(comm => (
+                            <button
+                                key={comm.id}
+                                onClick={() => setActiveTab(comm.id)}
+                                className={`min-w-[4.5rem] px-2 pb-2 text-xs font-bold border-b-2 transition-colors text-center whitespace-nowrap truncate max-w-[120px] ${activeTab === comm.id ? 'text-green-600 border-green-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+                            >
+                                {comm.name.replace('仮・', '').replace('コミュニティ', '')}
+                            </button>
+                        ))}
+                        {/* Spacer for scroll interaction */}
+                        <div className="w-2 shrink-0"></div>
+                    </div>
+
+                    {/* Fixed 'My Past' Tab */}
+                    <div className="border-l border-slate-100 bg-white pl-1 pr-2 pt-2 pb-0 shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.1)] z-10">
+                        <button
+                            onClick={() => setActiveTab('my_past')}
+                            className={`pb-2 text-xs font-extrabold border-b-2 transition-colors text-center whitespace-nowrap flex items-center space-x-1 ${activeTab === 'my_past' ? 'text-orange-500 border-orange-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+                        >
+                            <History size={14} />
+                            <span>My過去</span>
+                        </button>
+                    </div>
                 </div>
 
-                {/* Sub Tabs & Filter Bar (Hide for pure timeline view if needed, but keeping for utility) */}
+                {/* Sub Tabs & Filter Bar */}
                 {activeTab !== 'my_past' && (
                     <div className="bg-slate-50 px-4 py-3 flex justify-between items-center border-b border-slate-100">
                         <div className="flex bg-slate-200/50 rounded-lg p-1">
@@ -105,7 +133,7 @@ export function TimelineScreen({ isUnlocked, data, myRecords, onRecordClick }) {
             </div>
 
             <div className="p-4 space-y-6">
-                {/* Social Proof Banner (Only on records tab, when locked or meant to encourage) */}
+                {/* Social Proof Banner */}
                 {activeSubTab === 'records' && activeTab !== 'my_past' && (
                     <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-0.5 shadow-lg animate-pulse mb-6">
                         <div className="bg-white rounded-[10px] p-4 flex items-center justify-between">
@@ -131,7 +159,6 @@ export function TimelineScreen({ isUnlocked, data, myRecords, onRecordClick }) {
                     <TimelineCard
                         key={item.id}
                         data={item}
-                        // Lock Logic: Locked if NOT unlocked AND NOT My Past AND NOT Official
                         isLocked={!isUnlocked && activeTab !== 'my_past' && !item.isOfficial}
                     />
                 ))}
