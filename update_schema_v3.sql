@@ -22,6 +22,29 @@ create table if not exists public.community_members (
   unique(community_id, user_id)
 );
 
+-- Missing Records Table (Critical Fix)
+create table if not exists public.records (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) not null,
+  date date not null,
+  time_start time,
+  time_end time,
+  field text,
+  range text,
+  crop text,
+  worker text,
+  target text,
+  type text not null, -- pesticide, fertilizer, work, etc.
+  detail text, -- pesticide name, work type, etc.
+  pesticide text, -- specific column for pesticide name if needed for queries
+  dilution numeric,
+  amount text, -- stored as text because it might contain units or be complex
+  method text,
+  memo text,
+  image_url text,
+  created_at timestamptz default now()
+);
+
 create table if not exists public.community_posts (
   id uuid default gen_random_uuid() primary key,
   community_id uuid references public.communities(id) on delete cascade,
