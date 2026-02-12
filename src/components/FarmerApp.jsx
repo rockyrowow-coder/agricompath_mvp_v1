@@ -280,7 +280,8 @@ export default function FarmerApp() {
 
             if (error) {
                 console.error('Error inserting record:', error);
-                alert(`記録の保存に失敗しました: ${error.message}`);
+                // Detailed Error for Debugging
+                alert(`記録の保存に失敗しました。\nCode: ${error.code}\nMessage: ${error.message}\nDetails: ${error.details}`);
                 return;
             }
 

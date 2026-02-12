@@ -47,6 +47,7 @@ export function CommunityScreen() {
             setMyCommunities(data.map(item => ({ ...item.communities, role: item.role })));
         } catch (error) {
             console.error('Error fetching my communities:', error);
+            alert(`コミュニティデータの取得に失敗しました: ${error.message || JSON.stringify(error)}`);
         } finally {
             setLoading(false);
         }
