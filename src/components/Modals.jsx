@@ -467,19 +467,25 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
         setUploading(true);
         try {
             const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random()}.${fileExt}`;
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
             const filePath = `${fileName}`;
 
+            // Try uploading to 'images' bucket
             const { error: uploadError } = await supabase.storage
                 .from('images')
-                .upload(filePath, file);
+                .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
-            if (uploadError) throw uploadError;
+            if (uploadError) {
+                console.error("Upload error details:", uploadError);
+                throw uploadError;
+            }
 
             const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+            if (!data || !data.publicUrl) throw new Error("Could not get public URL");
+
             setFormData({ ...formData, imageUrl: data.publicUrl });
         } catch (error) {
-            alert('画像のアップロードに失敗しました');
+            alert('画像のアップロードに失敗しました: ' + (error.message || "Unknown Error"));
             console.error(error);
         } finally {
             setUploading(false);

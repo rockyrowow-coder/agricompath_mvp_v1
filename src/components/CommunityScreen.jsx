@@ -60,7 +60,17 @@ export function CommunityScreen() {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setAllCommunities(data);
+
+            // Sort: Default Community First
+            const sorted = data.sort((a, b) => {
+                const isADefault = a.name.includes('守山メロン');
+                const isBDefault = b.name.includes('守山メロン');
+                if (isADefault && !isBDefault) return -1;
+                if (!isADefault && isBDefault) return 1;
+                return 0; // Keep original order (created_at desc)
+            });
+
+            setAllCommunities(sorted);
         } catch (error) {
             console.error('Error fetching all communities:', error);
         }
@@ -213,7 +223,12 @@ export function CommunityScreen() {
                             <div key={comm.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                                 <div className="flex justify-between items-center">
                                     <div className="flex-1">
-                                        <h3 className="font-bold text-slate-800">{comm.name}</h3>
+                                        <div className="flex items-center space-x-2">
+                                            <h3 className="font-bold text-slate-800">{comm.name}</h3>
+                                            {comm.name.includes('守山メロン') && (
+                                                <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold">公式</span>
+                                            )}
+                                        </div>
                                         <p className="text-xs text-slate-500 mt-1 line-clamp-1">{comm.description}</p>
                                     </div>
                                     <button
