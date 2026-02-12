@@ -9,6 +9,13 @@ export function LoginScreen() {
     const [email, setEmail] = useState('');
     const [producerId, setProducerId] = useState('');
     const [fullName, setFullName] = useState('');
+    const [password, setPassword] = useState('');
+    const [isSignUp, setIsSignUp] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const navigate = useNavigate();
+    const { signIn, signUp } = useAuth();
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
