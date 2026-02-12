@@ -143,17 +143,146 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
 };
 
 
+// Calendar Import Modal (Mock OCR)
+const CalendarImportModal = ({ onClose, onImport }) => {
+    const [image, setImage] = useState(null);
+    const [analyzing, setAnalyzing] = useState(false);
+    const [detectedRecords, setDetectedRecords] = useState([]);
+    const [step, setStep] = useState('upload'); // upload, confirm
+
+    const handleImageSelect = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setImage(url);
+            analyzeImage(file);
+        }
+    };
+
+    const analyzeImage = (file) => {
+        setAnalyzing(true);
+        // Simulate OCR / AI Analysis
+        setTimeout(() => {
+            const today = new Date();
+            const year = today.getFullYear();
+            // Mock detected data based on "Pest Control Calendar"
+            const mockData = [
+                { id: 1, date: `${year}-06-01`, crop: 'メロン', type: 'pesticide', detail: 'ダコニール1000', amount: '1000倍', method: '散布', selected: true },
+                { id: 2, date: `${year}-06-10`, crop: 'メロン', type: 'pesticide', detail: 'アファーム乳剤', amount: '2000倍', method: '散布', selected: true },
+                { id: 3, date: `${year}-06-15`, crop: 'メロン', type: 'fertilizer', detail: '液肥トップワン', amount: '500倍', method: '潅水', selected: true },
+                { id: 4, date: `${year}-06-25`, crop: 'メロン', type: 'pesticide', detail: 'モスピラン', amount: '2000倍', method: '散布', selected: true },
+            ];
+            setDetectedRecords(mockData);
+            setAnalyzing(false);
+            setStep('confirm');
+        }, 2000);
+    };
+
+    const toggleRecord = (id) => {
+        setDetectedRecords(prev => prev.map(r => r.id === id ? { ...r, selected: !r.selected } : r));
+    };
+
+    const handleConfirm = () => {
+        const toImport = detectedRecords.filter(r => r.selected);
+        onImport(toImport);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 className="font-bold text-lg text-slate-800 flex items-center">
+                        <CalendarDays className="mr-2 text-green-600" /> 防除暦読み込み
+                    </h3>
+                    <button onClick={onClose}><X className="text-slate-400" /></button>
+                </div>
+
+                <div className="p-6 overflow-y-auto flex-1">
+                    {step === 'upload' && (
+                        <div className="flex flex-col items-center justify-center space-y-6 h-full">
+                            <div className="w-full aspect-video bg-slate-100 rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center relative hover:bg-slate-50 transition-colors group">
+                                <input type="file" accept="image/*" onChange={handleImageSelect} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                {analyzing ? (
+                                    <div className="flex flex-col items-center animate-pulse">
+                                        <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                                        <p className="font-bold text-slate-500">AI解析中...</p>
+                                        <p className="text-xs text-slate-400 mt-2">防除暦の日付と薬剤を読み取っています</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Camera size={48} className="text-slate-300 mb-2 group-hover:text-green-500 transition-colors" />
+                                        <p className="font-bold text-slate-500">写真を撮影 / アップロード</p>
+                                        <p className="text-xs text-slate-400 mt-1">JAの防除暦などを撮影してください</p>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'confirm' && (
+                        <div className="space-y-4">
+                            <div className="bg-green-50 p-3 rounded-xl flex items-start space-x-3">
+                                <CheckCircle2 className="text-green-600 shrink-0 mt-0.5" size={20} />
+                                <div>
+                                    <p className="text-sm font-bold text-green-800">{detectedRecords.length}件のデータを検出しました</p>
+                                    <p className="text-xs text-green-600 mt-1">取り込む項目を選択してください。</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                {detectedRecords.map(record => (
+                                    <div
+                                        key={record.id}
+                                        onClick={() => toggleRecord(record.id)}
+                                        className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${record.selected ? 'bg-white border-green-500 shadow-sm ring-1 ring-green-100' : 'bg-slate-50 border-slate-200 opacity-60'}`}
+                                    >
+                                        <div className={`w-5 h-5 rounded border mr-3 flex items-center justify-center ${record.selected ? 'bg-green-500 border-green-500' : 'bg-white border-slate-300'}`}>
+                                            {record.selected && <CheckCircle2 size={14} className="text-white" />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{record.date}</span>
+                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${record.type === 'pesticide' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                    {record.type === 'pesticide' ? '防除' : '施肥'}
+                                                </span>
+                                            </div>
+                                            <h4 className="font-bold text-slate-800 text-sm">{record.detail}</h4>
+                                            <p className="text-xs text-slate-500">{record.amount}・{record.method}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-4 border-t border-slate-100 bg-white">
+                    {step === 'confirm' ? (
+                        <div className="flex space-x-3">
+                            <button onClick={() => setStep('upload')} className="flex-1 py-3 font-bold text-slate-500 bg-slate-100 rounded-xl">再撮影</button>
+                            <button onClick={handleConfirm} className="flex-1 py-3 font-bold text-white bg-green-600 rounded-xl shadow-lg shadow-green-200 hover:bg-green-500">
+                                インポート ({detectedRecords.filter(r => r.selected).length})
+                            </button>
+                        </div>
+                    ) : (
+                        <button onClick={onClose} className="w-full py-3 font-bold text-slate-500 bg-slate-100 rounded-xl">キャンセル</button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export function MyCultivationScreen({ records, onExport, inventory }) {
     const [viewMode, setViewMode] = useState('list');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all');
-    const [filterCrop, setFilterCrop] = useState('全て');
     const [showRegisterModal, setShowRegisterModal] = useState(false);
+    const [showCalendarImport, setShowCalendarImport] = useState(false); // New State
     const { user } = useAuth();
 
     const handleRegisterMaterial = async (newMaterial) => {
         if (!user) return;
-
         try {
             const { error } = await supabase
                 .from('inventory')
@@ -167,12 +296,40 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                 }]);
 
             if (error) throw error;
-
             setShowRegisterModal(false);
             alert("資材を登録しました。反映するにはリロードしてください。");
         } catch (e) {
             console.error("Error adding material:", e);
             alert("登録に失敗しました");
+        }
+    };
+
+    const handleCalendarImport = async (importedRecords) => {
+        if (!user || importedRecords.length === 0) return;
+
+        try {
+            const payload = importedRecords.map(r => ({
+                user_id: user.id,
+                date: r.date,
+                type: r.type,
+                crop: r.crop,
+                detail: r.detail, // Store main info here
+                pesticide: r.type === 'pesticide' ? r.detail : null,
+                amount: r.amount,
+                method: r.method,
+                range: '全面', // Default
+                memo: '防除暦取込'
+            }));
+
+            const { error } = await supabase.from('records').insert(payload);
+            if (error) throw error;
+
+            alert(`${importedRecords.length}件のデータをインポートしました！`);
+            setShowCalendarImport(false);
+            window.location.reload(); // Simple reload to refresh timeline
+        } catch (error) {
+            console.error(error);
+            alert('インポートに失敗しました: ' + error.message);
         }
     };
 
@@ -201,9 +358,14 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                         <h2 className="text-xl font-bold text-slate-800">MY栽培記録</h2>
                         <p className="text-xs font-medium text-slate-400">自分の全データを管理</p>
                     </div>
-                    <button onClick={onExport} className="flex items-center space-x-2 bg-green-600 text-white hover:bg-green-500 px-4 py-2 rounded-xl text-xs font-bold shadow-md shadow-green-100 transition-transform active:scale-95">
-                        <Download size={16} /> <span>CSV出力</span>
-                    </button>
+                    <div className="flex space-x-2">
+                        <button onClick={() => setShowCalendarImport(true)} className="flex items-center space-x-2 bg-blue-600 text-white hover:bg-blue-500 px-3 py-2 rounded-xl text-xs font-bold shadow-md shadow-blue-100 transition-transform active:scale-95">
+                            <CalendarDays size={16} /> <span>防除暦取込</span>
+                        </button>
+                        <button onClick={onExport} className="flex items-center space-x-2 bg-green-600 text-white hover:bg-green-500 px-3 py-2 rounded-xl text-xs font-bold shadow-md shadow-green-100 transition-transform active:scale-95">
+                            <Download size={16} /> <span>CSV出力</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Search & Filter Bar */}
@@ -322,6 +484,11 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
 
             {showRegisterModal && (
                 <MaterialRegisterModal onClose={() => setShowRegisterModal(false)} onSubmit={handleRegisterMaterial} />
+            )}
+
+            {/* Calendar Import Modal Integration */}
+            {showCalendarImport && (
+                <CalendarImportModal onClose={() => setShowCalendarImport(false)} onImport={handleCalendarImport} />
             )}
 
             {viewMode === 'accounting' && (

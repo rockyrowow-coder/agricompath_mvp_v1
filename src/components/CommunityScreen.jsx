@@ -61,18 +61,23 @@ export function CommunityScreen() {
 
             if (error) throw error;
 
-            // Sort: Default Community First
-            const sorted = data.sort((a, b) => {
-                const isADefault = a.name.includes('守山メロン');
-                const isBDefault = b.name.includes('守山メロン');
+            // Sort: Default Community "仮・守山メロン部会" First
+            // Safe sort: handle potential nulls, though database enforces constraints usually
+            const sorted = (data || []).sort((a, b) => {
+                const nameA = a.name || '';
+                const nameB = b.name || '';
+                const isADefault = nameA.includes('守山メロン');
+                const isBDefault = nameB.includes('守山メロン');
+
                 if (isADefault && !isBDefault) return -1;
                 if (!isADefault && isBDefault) return 1;
-                return 0; // Keep original order (created_at desc)
+                return 0; // Keep original order
             });
 
             setAllCommunities(sorted);
         } catch (error) {
             console.error('Error fetching all communities:', error);
+            // Don't show alert for fetch errors to avoid spamming user, just log
         }
     };
 
@@ -105,20 +110,27 @@ export function CommunityScreen() {
                     role: 'admin'
                 }]);
 
-            if (memberError) throw memberError;
+            if (memberError) {
+                // If member creation fails, ideally we should rollback community creation, 
+                // but for MVP just alert and log.
+                console.error("Failed to add member after creating community", memberError);
+                throw memberError;
+            }
 
             alert('コミュニティを作成しました！');
             setNewCommunityName('');
-
             setNewCommunityDesc('');
             setRepEmail('');
             setRepPhone('');
             setRepJaNumber('');
             setShowCreateModal(false);
-            fetchMyCommunities();
-            fetchAllCommunities();
+
+            // Refresh lists
+            await Promise.all([fetchMyCommunities(), fetchAllCommunities()]);
+
         } catch (error) {
-            alert('作成に失敗しました: ' + error.message);
+            console.error(error);
+            alert('作成に失敗しました: ' + (error.message || "Unknown error"));
         }
     };
 
@@ -143,7 +155,8 @@ export function CommunityScreen() {
                 fetchMyCommunities();
             }
         } catch (error) {
-            alert('参加に失敗しました: ' + error.message);
+            console.error(error);
+            alert('参加に失敗しました: ' + (error.message || "Unknown error"));
         }
     };
 

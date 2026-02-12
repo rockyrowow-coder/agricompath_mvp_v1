@@ -134,8 +134,16 @@ export function CommunityDetailScreen() {
                 if (topics[item.parent_id]) {
                     topics[item.parent_id].replies.push(item);
                 } else {
-                    // Parent might be a reply itself? (Nested threads?) 
-                    // For MVP assume 1 level depth. If parent not found, show as standalone?
+                    // Orphaned reply (User wants to see these!)
+                    // Treat as standalone topic if parent is missing
+                    if (!topics[item.id]) { // Avoid duplication if somehow already processed
+                        topics[item.id] = {
+                            ...item,
+                            replies: [],
+                            is_orphan: true,
+                            content: `(返信先不明) ${item.content}` // Mark it visually
+                        };
+                    }
                 }
             }
         });
@@ -261,7 +269,7 @@ export function CommunityDetailScreen() {
                     <div className="flex items-center space-x-2 mb-2">
                         <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">{record.date}</span>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded ${record.type === 'pesticide' ? 'bg-red-100 text-red-600' :
-                                record.type === 'fertilizer' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+                            record.type === 'fertilizer' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
                             }`}>{record.type === 'pesticide' ? '防除' : record.type === 'fertilizer' ? '施肥' : '作業'}</span>
                     </div>
                     <h3 className="font-bold text-slate-800 text-sm mb-1">{record.detail} {record.amount ? `(${record.amount})` : ''}</h3>
