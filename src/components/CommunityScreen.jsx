@@ -44,10 +44,11 @@ export function CommunityScreen() {
                 .eq('user_id', user.id);
 
             if (error) throw error;
-            setMyCommunities(data.map(item => ({ ...item.communities, role: item.role })));
+            // Safe map: filter out items where communities might be null (if deleted)
+            setMyCommunities((data || []).filter(item => item.communities).map(item => ({ ...item.communities, role: item.role })));
         } catch (error) {
             console.error('Error fetching my communities:', error);
-            alert(`コミュニティデータの取得に失敗しました: ${error.message || JSON.stringify(error)}`);
+            // alert(`コミュニティデータの取得に失敗しました: ${error.message || JSON.stringify(error)}`); // Suppress alert for better UX if transient
         } finally {
             setLoading(false);
         }
@@ -62,9 +63,8 @@ export function CommunityScreen() {
 
             if (error) throw error;
 
-            // Sort: Default Community "仮・守山メロン部会" First
-            // Safe sort: handle potential nulls, though database enforces constraints usually
             const sorted = (data || []).sort((a, b) => {
+                if (!a || !b) return 0; // Safety check
                 const nameA = a.name || '';
                 const nameB = b.name || '';
                 const isADefault = nameA.includes('守山メロン');
@@ -72,13 +72,12 @@ export function CommunityScreen() {
 
                 if (isADefault && !isBDefault) return -1;
                 if (!isADefault && isBDefault) return 1;
-                return 0; // Keep original order
+                return 0;
             });
 
             setAllCommunities(sorted);
         } catch (error) {
             console.error('Error fetching all communities:', error);
-            // Don't show alert for fetch errors to avoid spamming user, just log
         }
     };
 

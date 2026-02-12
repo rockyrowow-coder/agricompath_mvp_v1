@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { Sprout, MessageCircle, Bell, Settings, Camera, Home, ClipboardList, Star, CheckCircle2, LogOut, Users } from 'lucide-react';
+import { Sprout, MessageCircle, Bell, Settings, Camera, Home, ClipboardList, Star, CheckCircle2, LogOut, Users, User } from 'lucide-react';
 import { NavItem } from './Shared';
 import { HomeScreen } from './HomeScreen';
 import { TimelineScreen } from './TimelineScreen';
@@ -10,7 +10,7 @@ import { ContactScreen } from './ContactScreen';
 import { MyCultivationScreen } from './MyCultivationScreen';
 import { CommunityScreen } from './CommunityScreen';
 import { CommunityDetailScreen } from './CommunityDetailScreen';
-import { RecordMenuOverlay, RecordModal, SettingsModal, CSVExportModal } from './Modals';
+import { RecordMenuOverlay, RecordModal, SettingsModal, CSVExportModal, ProfileSettingsModal } from './Modals';
 import { INITIAL_TIMELINE, INITIAL_MY_RECORDS, INITIAL_INVENTORY } from '../data/constants';
 
 export default function FarmerApp() {
@@ -376,6 +376,9 @@ export default function FarmerApp() {
                         <Bell size={24} className="text-slate-400 hover:text-slate-600" />
                         <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
                     </div>
+                    <button onClick={() => setModalType('profile')} className="transition-transform active:scale-90">
+                        <User size={24} className="text-slate-400 hover:text-slate-600" />
+                    </button>
                     <button onClick={() => setModalType('settings')} className="transition-transform active:scale-90">
                         <Settings size={24} className="text-slate-400 hover:text-slate-600" />
                     </button>
@@ -434,7 +437,8 @@ export default function FarmerApp() {
             {modalType && (
                 modalType === 'csv' ? <CSVExportModal onClose={() => setModalType(null)} records={myRecords} /> :
                     modalType === 'settings' ? <SettingsModal onClose={() => setModalType(null)} settings={userSettings} onUpdate={setUserSettings} /> :
-                        <RecordModal type={modalType} onClose={() => setModalType(null)} onSubmit={handleRecordSubmit} inventory={inventory} settings={userSettings} communities={joinedCommunities} />
+                        modalType === 'profile' ? <ProfileSettingsModal user={user} onClose={() => setModalType(null)} /> :
+                            <RecordModal type={modalType} onClose={() => setModalType(null)} onSubmit={handleRecordSubmit} inventory={inventory} settings={userSettings} communities={joinedCommunities} />
             )}
 
             {notification && (
