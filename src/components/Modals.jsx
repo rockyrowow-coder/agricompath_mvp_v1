@@ -135,6 +135,7 @@ export const ProfileSettingsModal = ({ user, onClose }) => {
     }, [user]);
 
     const fetchProfile = async () => {
+        if (!user || !user.id) return; // Guard clause
         setLoading(true);
         const { data, error } = await supabase
             .from('profiles')
@@ -239,10 +240,13 @@ export function SettingsModal({ onClose, settings, onUpdate }) {
         if (onUpdate) onUpdate(newSettings);
 
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("No user found");
+
             const { error } = await supabase
                 .from('user_settings')
                 .upsert({
-                    user_id: (await supabase.auth.getUser()).data.user.id,
+                    user_id: user.id,
                     ...newSettings,
                     updated_at: new Date()
                 });

@@ -83,6 +83,7 @@ export function CommunityScreen() {
 
     const handleCreateCommunity = async () => {
         if (!newCommunityName.trim()) return;
+        if (!user) return alert("ログインが必要です");
 
         try {
             // 1. Create Community
@@ -135,6 +136,7 @@ export function CommunityScreen() {
     };
 
     const handleJoinCommunity = async (communityId) => {
+        if (!user) return alert("ログインが必要です");
         try {
             const { error } = await supabase
                 .from('community_members')
