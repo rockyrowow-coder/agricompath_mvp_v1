@@ -1,22 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, Plus, Search, ArrowRight, MessageCircle } from 'lucide-react';
+import { Users, Plus, Search, ArrowRight, MessageCircle, Lock, Unlock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { FriendList } from './FriendList';
 
 export function CommunityScreen() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('my_communities'); // 'my_communities' or 'find'
+    const [activeTab, setActiveTab] = useState('my_communities'); // 'my_communities', 'find', 'friends'
     const [myCommunities, setMyCommunities] = useState([]);
     const [allCommunities, setAllCommunities] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Modal & Password State
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false); // For joining
+    const [selectedCommunityId, setSelectedCommunityId] = useState(null);
+    const [inputPassword, setInputPassword] = useState('');
+
+    // Create Form State
     const [newCommunityName, setNewCommunityName] = useState('');
     const [newCommunityDesc, setNewCommunityDesc] = useState('');
     const [repEmail, setRepEmail] = useState('');
     const [repPhone, setRepPhone] = useState('');
     const [repJaNumber, setRepJaNumber] = useState('');
+    const [newCommunityPassword, setNewCommunityPassword] = useState(''); // New password field
 
     useEffect(() => {
         if (user) {
@@ -56,6 +65,7 @@ export function CommunityScreen() {
 
     const fetchAllCommunities = async () => {
         try {
+            // Include check for password existence
             const { data, error } = await supabase
                 .from('communities')
                 .select('*')
@@ -95,7 +105,8 @@ export function CommunityScreen() {
                     created_by: user.id,
                     rep_email: repEmail,
                     rep_phone: repPhone,
-                    rep_ja_number: repJaNumber
+                    rep_ja_number: repJaNumber,
+                    join_password: newCommunityPassword || null // Add password
                 }])
                 .select()
                 .single();
@@ -112,8 +123,6 @@ export function CommunityScreen() {
                 }]);
 
             if (memberError) {
-                // If member creation fails, ideally we should rollback community creation, 
-                // but for MVP just alert and log.
                 console.error("Failed to add member after creating community", memberError);
                 throw memberError;
             }
@@ -124,6 +133,7 @@ export function CommunityScreen() {
             setRepEmail('');
             setRepPhone('');
             setRepJaNumber('');
+            setNewCommunityPassword('');
             setShowCreateModal(false);
 
             // Refresh lists
@@ -132,6 +142,29 @@ export function CommunityScreen() {
         } catch (error) {
             console.error(error);
             alert('作成に失敗しました: ' + (error.message || "Unknown error"));
+        }
+    };
+
+    const initiateJoin = (community) => {
+        if (community.join_password) {
+            setSelectedCommunityId(community.id);
+            setInputPassword('');
+            setShowPasswordModal(true);
+        } else {
+            handleJoinCommunity(community.id);
+        }
+    };
+
+    const handleJoinWithPassword = async () => {
+        if (!inputPassword) return;
+
+        // Client-side check for MVP
+        const community = allCommunities.find(c => c.id === selectedCommunityId);
+        if (community && community.join_password === inputPassword) {
+            await handleJoinCommunity(selectedCommunityId);
+            setShowPasswordModal(false);
+        } else {
+            alert('パスワードが間違っています');
         }
     };
 
@@ -169,24 +202,18 @@ export function CommunityScreen() {
                 <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
                     <Users className="mr-2 text-green-600" /> コミュニティ
                 </h2>
-                <div className="flex space-x-6 border-b border-slate-100">
-                    <button
-                        onClick={() => setActiveTab('my_communities')}
-                        className={`pb-3 text-sm font-bold transition-colors relative ${activeTab === 'my_communities' ? 'text-green-600' : 'text-slate-400'}`}
-                    >
+                <div className="flex space-x-6 border-b border-slate-100 overflow-x-auto">
+                    <button onClick={() => setActiveTab('my_communities')} className={`pb-3 text-sm font-bold transition-colors relative whitespace-nowrap ${activeTab === 'my_communities' ? 'text-green-600' : 'text-slate-400'}`}>
                         参加中
-                        {activeTab === 'my_communities' && (
-                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-500 rounded-t-full" />
-                        )}
+                        {activeTab === 'my_communities' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-500 rounded-t-full" />}
                     </button>
-                    <button
-                        onClick={() => setActiveTab('find')}
-                        className={`pb-3 text-sm font-bold transition-colors relative ${activeTab === 'find' ? 'text-green-600' : 'text-slate-400'}`}
-                    >
+                    <button onClick={() => setActiveTab('find')} className={`pb-3 text-sm font-bold transition-colors relative whitespace-nowrap ${activeTab === 'find' ? 'text-green-600' : 'text-slate-400'}`}>
                         さがす
-                        {activeTab === 'find' && (
-                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-500 rounded-t-full" />
-                        )}
+                        {activeTab === 'find' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-500 rounded-t-full" />}
+                    </button>
+                    <button onClick={() => setActiveTab('friends')} className={`pb-3 text-sm font-bold transition-colors relative whitespace-nowrap ${activeTab === 'friends' ? 'text-green-600' : 'text-slate-400'}`}>
+                        友達・フォロー
+                        {activeTab === 'friends' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-500 rounded-t-full" />}
                     </button>
                 </div>
             </div>
@@ -194,7 +221,11 @@ export function CommunityScreen() {
             <div className="p-4 space-y-4">
                 {activeTab === 'my_communities' && (
                     <>
-                        {myCommunities.length === 0 && !loading ? (
+                        {loading ? (
+                            <div className="flex justify-center items-center py-20">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                            </div>
+                        ) : myCommunities.length === 0 ? (
                             <div className="text-center py-10">
                                 <p className="text-slate-400 font-bold mb-4">まだ参加しているコミュニティはありません</p>
                                 <button
@@ -225,7 +256,7 @@ export function CommunityScreen() {
 
                         <button
                             onClick={() => setShowCreateModal(true)}
-                            className="fixed bottom-24 right-4 bg-green-600 text-white p-4 rounded-full shadow-lg shadow-green-200 hover:bg-green-500 transition-transform active:scale-90"
+                            className="fixed bottom-24 right-4 bg-green-600 text-white p-4 rounded-full shadow-lg shadow-green-200 hover:bg-green-500 transition-transform active:scale-90 z-20"
                         >
                             <Plus size={24} />
                         </button>
@@ -240,6 +271,7 @@ export function CommunityScreen() {
                                     <div className="flex-1">
                                         <div className="flex items-center space-x-2">
                                             <h3 className="font-bold text-slate-800">{comm.name}</h3>
+                                            {comm.join_password && <Lock size={14} className="text-slate-400" />}
                                             {comm.name.includes('守山メロン') && (
                                                 <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold">公式</span>
                                             )}
@@ -247,7 +279,7 @@ export function CommunityScreen() {
                                         <p className="text-xs text-slate-500 mt-1 line-clamp-1">{comm.description}</p>
                                     </div>
                                     <button
-                                        onClick={() => handleJoinCommunity(comm.id)}
+                                        onClick={() => initiateJoin(comm)}
                                         className="bg-green-50 text-green-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-green-100 transition-colors ml-3"
                                     >
                                         参加する
@@ -260,12 +292,16 @@ export function CommunityScreen() {
                         )}
                     </div>
                 )}
+
+                {activeTab === 'friends' && (
+                    <FriendList userId={user?.id} />
+                )}
             </div>
 
             {/* Create Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white w-full max-w-sm rounded-3xl p-6 animate-in zoom-in-95">
+                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white w-full max-w-sm rounded-3xl p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
                         <h3 className="font-bold text-xl text-slate-800 mb-4">コミュニティを作成</h3>
                         <div className="space-y-4">
                             <div>
@@ -287,6 +323,20 @@ export function CommunityScreen() {
                                     placeholder="コミュニティの目的など"
                                 />
                             </div>
+
+                            {/* Password Field */}
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 ml-1 flex items-center"><Lock size={12} className="mr-1" /> 参加パスワード (任意)</label>
+                                <input
+                                    type="text"
+                                    value={newCommunityPassword}
+                                    onChange={e => setNewCommunityPassword(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="設定する場合のみ入力"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1 ml-1">※パスワードを設定すると、参加時に入力が必要になります。</p>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 ml-1">代表者メール</label>
@@ -316,6 +366,32 @@ export function CommunityScreen() {
                                     作成
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Password Entry Modal */}
+            {showPasswordModal && (
+                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white w-full max-w-xs rounded-3xl p-6 animate-in zoom-in-95">
+                        <div className="flex flex-col items-center mb-4">
+                            <div className="bg-slate-100 p-3 rounded-full mb-3">
+                                <Lock size={24} className="text-slate-500" />
+                            </div>
+                            <h3 className="font-bold text-lg text-slate-800">パスワードが必要です</h3>
+                            <p className="text-xs text-slate-400 mt-1">このコミュニティに参加するにはパスワードを入力してください。</p>
+                        </div>
+                        <input
+                            type="password"
+                            value={inputPassword}
+                            onChange={e => setInputPassword(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500 text-center text-lg mb-4"
+                            placeholder="パスワード"
+                        />
+                        <div className="flex space-x-3">
+                            <button onClick={() => setShowPasswordModal(false)} className="flex-1 py-2 text-slate-500 font-bold bg-slate-100 rounded-xl text-sm">キャンセル</button>
+                            <button onClick={handleJoinWithPassword} className="flex-1 py-2 text-white font-bold bg-green-600 rounded-xl hover:bg-green-500 text-sm">参加</button>
                         </div>
                     </div>
                 </div>
