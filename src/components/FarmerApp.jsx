@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { Sprout, MessageCircle, Bell, Settings, Camera, Home, ClipboardList, Star, CheckCircle2, LogOut } from 'lucide-react';
+import { Sprout, MessageCircle, Bell, Settings, Camera, Home, ClipboardList, Star, CheckCircle2, LogOut, Users } from 'lucide-react';
 import { NavItem } from './Shared';
 import { HomeScreen } from './HomeScreen';
 import { TimelineScreen } from './TimelineScreen';
 import { ContactScreen } from './ContactScreen';
 import { MyCultivationScreen } from './MyCultivationScreen';
+import { CommunityScreen } from './CommunityScreen';
+import { CommunityDetailScreen } from './CommunityDetailScreen';
 import { RecordMenuOverlay, RecordModal, SettingsModal, CSVExportModal } from './Modals';
 import { INITIAL_TIMELINE, INITIAL_MY_RECORDS, INITIAL_INVENTORY } from '../data/constants';
 
@@ -34,6 +36,7 @@ export default function FarmerApp() {
     });
     const [notification, setNotification] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [joinedCommunities, setJoinedCommunities] = useState([]);
 
     // Fetch data from Supabase
     useEffect(() => {
@@ -107,6 +110,19 @@ export default function FarmerApp() {
                     });
                 }
 
+                // 4. Fetch Joined Communities (for record sharing)
+                const { data: communitiesData, error: communitiesError } = await supabase
+                    .from('community_members')
+                    .select('communities(id, name)')
+                    .eq('user_id', user.id);
+
+                if (communitiesError) throw communitiesError;
+
+                if (communitiesData) {
+                    // Flatten structure
+                    setJoinedCommunities(communitiesData.map(c => c.communities));
+                }
+
             } catch (error) {
                 console.error('Error fetching data:', error);
             } finally {
@@ -121,6 +137,7 @@ export default function FarmerApp() {
     const getActiveTab = (pathname) => {
         if (pathname === '/') return 'home';
         if (pathname === '/timeline') return 'timeline';
+        if (pathname.startsWith('/community')) return 'community';
         if (pathname === '/contact') return 'contact';
         if (pathname === '/cultivation') return 'my_cultivation';
         return 'home';
@@ -162,7 +179,9 @@ export default function FarmerApp() {
         setShowRecordMenu(false);
     };
 
-    const handleRecordSubmit = async (newRecord) => {
+    const handleRecordSubmit = async (submissionData) => {
+        const { isPublic, sharedCommunities, ...newRecord } = submissionData;
+
         const recordPayload = {
             user_id: user?.id,
             date: newRecord.date || new Date().toISOString().split('T')[0],
@@ -181,7 +200,8 @@ export default function FarmerApp() {
             range: newRecord.range,
             pesticide: newRecord.pesticide,
             work_type: newRecord.workType,
-            memo: newRecord.memo
+            memo: newRecord.memo,
+            is_public: !!isPublic
         };
 
         if (user) {
@@ -216,6 +236,22 @@ export default function FarmerApp() {
                 };
                 setMyRecords([myRecordEntry, ...myRecords]);
                 setLastRecordTime(Date.now());
+
+                // Handle Community Sharing
+                if (sharedCommunities && sharedCommunities.length > 0) {
+                    const sharePayload = sharedCommunities.map(communityId => ({
+                        record_id: returnedRecord.id,
+                        community_id: communityId
+                    }));
+
+                    const { error: shareError } = await supabase
+                        .from('record_shares')
+                        .insert(sharePayload);
+
+                    if (shareError) {
+                        console.error("Error sharing record:", shareError);
+                    }
+                }
             }
         }
 
@@ -291,6 +327,8 @@ export default function FarmerApp() {
                     }} />} />
                     <Route path="/timeline" element={<TimelineScreen isUnlocked={isUnlocked()} data={timelineData} myRecords={myRecords} onRecordClick={() => setShowRecordMenu(true)} points={userPoints} />} />
                     <Route path="/contact" element={<ContactScreen />} />
+                    <Route path="/community" element={<CommunityScreen />} />
+                    <Route path="/community/:id" element={<CommunityDetailScreen />} />
                     <Route path="/cultivation" element={<MyCultivationScreen records={myRecords} onExport={() => setModalType('csv')} inventory={inventory} />} />
                 </Routes>
             </main>
@@ -316,9 +354,9 @@ export default function FarmerApp() {
                 <nav className="bg-white/95 backdrop-blur border-t border-slate-100 pb-safe pt-2 pointer-events-auto rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
                     <div className="flex justify-between items-end h-16 px-4">
                         <NavItem icon={<Home size={24} strokeWidth={activeTab === 'home' ? 2.5 : 2} />} label="ホーム" active={activeTab === 'home'} onClick={() => navigate('/')} />
-                        <NavItem icon={<ClipboardList size={24} strokeWidth={activeTab === 'timeline' ? 2.5 : 2} />} label="タイムライン" active={activeTab === 'timeline'} onClick={() => navigate('/timeline')} />
+                        <NavItem icon={<ClipboardList size={24} strokeWidth={activeTab === 'timeline' ? 2.5 : 2} />} label="記録" active={activeTab === 'timeline'} onClick={() => navigate('/timeline')} />
                         <div className="w-16"></div>
-                        <NavItem icon={<MessageCircle size={24} strokeWidth={activeTab === 'contact' ? 2.5 : 2} />} label="連絡" active={activeTab === 'contact'} onClick={() => navigate('/contact')} />
+                        <NavItem icon={<Users size={24} strokeWidth={activeTab === 'community' ? 2.5 : 2} />} label="コミュニティ" active={activeTab === 'community'} onClick={() => navigate('/community')} />
                         <NavItem icon={<Sprout size={24} strokeWidth={activeTab === 'my_cultivation' ? 2.5 : 2} />} label="MY栽培" active={activeTab === 'my_cultivation'} onClick={() => navigate('/cultivation')} />
                     </div>
                 </nav>
@@ -327,7 +365,7 @@ export default function FarmerApp() {
             {modalType && (
                 modalType === 'csv' ? <CSVExportModal onClose={() => setModalType(null)} records={myRecords} /> :
                     modalType === 'settings' ? <SettingsModal onClose={() => setModalType(null)} settings={userSettings} onUpdate={setUserSettings} /> :
-                        <RecordModal type={modalType} onClose={() => setModalType(null)} onSubmit={handleRecordSubmit} inventory={inventory} settings={userSettings} />
+                        <RecordModal type={modalType} onClose={() => setModalType(null)} onSubmit={handleRecordSubmit} inventory={inventory} settings={userSettings} communities={joinedCommunities} />
             )}
 
             {notification && (
