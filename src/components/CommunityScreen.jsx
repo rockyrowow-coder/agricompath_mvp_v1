@@ -14,6 +14,9 @@ export function CommunityScreen() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newCommunityName, setNewCommunityName] = useState('');
     const [newCommunityDesc, setNewCommunityDesc] = useState('');
+    const [repEmail, setRepEmail] = useState('');
+    const [repPhone, setRepPhone] = useState('');
+    const [repJaNumber, setRepJaNumber] = useState('');
 
     useEffect(() => {
         if (user) {
@@ -73,7 +76,10 @@ export function CommunityScreen() {
                 .insert([{
                     name: newCommunityName,
                     description: newCommunityDesc,
-                    created_by: user.id
+                    created_by: user.id,
+                    rep_email: repEmail,
+                    rep_phone: repPhone,
+                    rep_ja_number: repJaNumber
                 }])
                 .select()
                 .single();
@@ -93,7 +99,11 @@ export function CommunityScreen() {
 
             alert('コミュニティを作成しました！');
             setNewCommunityName('');
+            setNewCommunityName('');
             setNewCommunityDesc('');
+            setRepEmail('');
+            setRepPhone('');
+            setRepJaNumber('');
             setShowCreateModal(false);
             fetchMyCommunities();
             fetchAllCommunities();
@@ -247,6 +257,20 @@ export function CommunityScreen() {
                                     placeholder="コミュニティの目的など"
                                 />
                             </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 ml-1">代表者メール</label>
+                                    <input type="email" value={repEmail} onChange={e => setRepEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="email@example.com" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 ml-1">電話番号</label>
+                                    <input type="tel" value={repPhone} onChange={e => setRepPhone(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="090-0000-0000" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 ml-1">JA組合員番号</label>
+                                <input type="text" value={repJaNumber} onChange={e => setRepJaNumber(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="12345678" />
+                            </div>
                             <div className="flex space-x-3 pt-2">
                                 <button
                                     onClick={() => setShowCreateModal(false)}
@@ -265,7 +289,9 @@ export function CommunityScreen() {
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
+                </div>
+    )
+}
+        </div >
     );
 }

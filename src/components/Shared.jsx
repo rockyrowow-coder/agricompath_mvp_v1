@@ -8,7 +8,8 @@ export function RecordTypeBadge({ type }) {
         harvest: "bg-orange-100 text-orange-700 border-orange-200",
         official: "bg-blue-100 text-blue-700 border-blue-200",
         tweet: "bg-green-100 text-green-700 border-green-200",
-        accounting: "bg-yellow-100 text-yellow-700 border-yellow-200"
+        accounting: "bg-yellow-100 text-yellow-700 border-yellow-200",
+        post: "bg-indigo-100 text-indigo-700 border-indigo-200"
     };
     const labels = {
         pesticide: "農薬",
@@ -17,7 +18,8 @@ export function RecordTypeBadge({ type }) {
         harvest: "収穫",
         official: "公式",
         tweet: "つぶやき",
-        accounting: "経理"
+        accounting: "経理",
+        post: "掲示板"
     };
     return <span className={`text-xs px-2 py-1 rounded-md border font-bold ${styles[type] || styles.work}`}>{labels[type] || type}</span>;
 }

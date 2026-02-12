@@ -110,18 +110,78 @@ export default function FarmerApp() {
                     });
                 }
 
-                // 4. Fetch Joined Communities (for record sharing)
-                const { data: communitiesData, error: communitiesError } = await supabase
+                // 4. Fetch Joined Communities & Community Timeline
+                const { data: membersData, error: membersError } = await supabase
                     .from('community_members')
-                    .select('communities(id, name)')
+                    .select('community_id, communities(id, name)')
                     .eq('user_id', user.id);
 
-                if (communitiesError) throw communitiesError;
+                if (membersError) throw membersError;
 
-                if (communitiesData) {
-                    // Flatten structure
-                    setJoinedCommunities(communitiesData.map(c => c.communities));
+                let communityTimelineItems = [];
+
+                if (membersData) {
+                    const communities = membersData.map(m => m.communities);
+                    setJoinedCommunities(communities);
+                    const communityIds = membersData.map(m => m.community_id);
+
+                    if (communityIds.length > 0) {
+                        // 4a. Fetch Community Posts
+                        const { data: postsData } = await supabase
+                            .from('community_posts')
+                            .select('*, communities(name), users(email)') // simplified user info
+                            .in('community_id', communityIds)
+                            .order('created_at', { ascending: false })
+                            .limit(20);
+
+                        if (postsData) {
+                            communityTimelineItems = [...communityTimelineItems, ...postsData.map(p => ({
+                                id: `post-${p.id}`,
+                                date: new Date(p.created_at).toISOString().split('T')[0],
+                                type: 'post',
+                                title: p.communities?.name || 'コミュニティ',
+                                comment: p.content, // Map content to comment
+                                user: p.communities?.name || 'コミュニティ', // Use community name as user/source
+                                isFollowed: true, // Show in Following tab
+                                author: 'メンバー',
+                                community: p.communities?.name,
+                                timestamp: new Date(p.created_at)
+                            }))];
+                        }
+
+                        // 4b. Fetch Shared Records (via record_shares)
+                        const { data: sharesData } = await supabase
+                            .from('record_shares')
+                            .select('records(*), communities(name)')
+                            .in('community_id', communityIds)
+                            .order('shared_at', { ascending: false })
+                            .limit(20);
+
+                        if (sharesData) {
+                            const sharedRecords = sharesData
+                                .map(s => s.records)
+                                .filter(r => r && r.user_id !== user.id)
+                                .map(r => ({
+                                    id: `shared-${r.id}`,
+                                    date: r.date,
+                                    type: r.type, // Keep original type (work, pesticide, etc)
+                                    title: r.crop,
+                                    comment: r.memo || (r.type === 'work' ? r.work_type : r.detail), // Map memo/detail to comment
+                                    amount: r.amount,
+                                    pesticide: r.pesticide,
+                                    user: 'コミュニティメンバー', // Generic name
+                                    isFollowed: true, // Show in Following tab
+                                    community: 'コミュニティ共有',
+                                    timestamp: new Date(r.created_at)
+                                }));
+                            communityTimelineItems = [...communityTimelineItems, ...sharedRecords];
+                        }
+                    }
                 }
+
+                // Merge with INITIAL_TIMELINE or replace it? 
+                // Creating a mixed timeline
+                setTimelineData([...INITIAL_TIMELINE, ...communityTimelineItems].sort((a, b) => new Date(b.date) - new Date(a.date)));
 
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -354,7 +414,7 @@ export default function FarmerApp() {
                 <nav className="bg-white/95 backdrop-blur border-t border-slate-100 pb-safe pt-2 pointer-events-auto rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
                     <div className="flex justify-between items-end h-16 px-4">
                         <NavItem icon={<Home size={24} strokeWidth={activeTab === 'home' ? 2.5 : 2} />} label="ホーム" active={activeTab === 'home'} onClick={() => navigate('/')} />
-                        <NavItem icon={<ClipboardList size={24} strokeWidth={activeTab === 'timeline' ? 2.5 : 2} />} label="記録" active={activeTab === 'timeline'} onClick={() => navigate('/timeline')} />
+                        <NavItem icon={<ClipboardList size={24} strokeWidth={activeTab === 'timeline' ? 2.5 : 2} />} label="タイムライン" active={activeTab === 'timeline'} onClick={() => navigate('/timeline')} />
                         <div className="w-16"></div>
                         <NavItem icon={<Users size={24} strokeWidth={activeTab === 'community' ? 2.5 : 2} />} label="コミュニティ" active={activeTab === 'community'} onClick={() => navigate('/community')} />
                         <NavItem icon={<Sprout size={24} strokeWidth={activeTab === 'my_cultivation' ? 2.5 : 2} />} label="MY栽培" active={activeTab === 'my_cultivation'} onClick={() => navigate('/cultivation')} />
