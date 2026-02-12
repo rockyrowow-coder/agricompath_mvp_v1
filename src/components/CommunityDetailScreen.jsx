@@ -303,6 +303,13 @@ export function CommunityDetailScreen() {
                         <span>{activeThread ? '返信一覧' : 'トピック一覧'}</span>
                     </div>
                 </div>
+                {/* LINE Connect Button */}
+                {!activeThread && ( // Only show on main community view, not inside a thread
+                    <button onClick={() => alert("LINEグループ連携機能は準備中です。\n\nこの機能により、LINEグループの会話を自動要約してコミュニティ掲示板に反映できるようになります。")} className="bg-[#06C755] hover:bg-[#05b54c] text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center space-x-1 shadow-lg transition-transform active:scale-95 ml-2">
+                        <MessageCircle size={14} fill="white" />
+                        <span>LINE連携</span>
+                    </button>
+                )}
             </div>
 
             {/* Content Area */}

@@ -293,10 +293,12 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
                                 </select>
                             </div>
 
-                            {/* Main Agent (Pesticide) with Search & Safety Check */}
+                            {/* Main Agent (Pesticide/Fertilizer) with Search & Safety Check */}
                             <div className="space-y-1.5">
                                 <div className="flex justify-between">
-                                    <label className="text-xs font-bold text-red-500 ml-1">主剤 (在庫連動・検索)</label>
+                                    <label className="text-xs font-bold text-red-500 ml-1">
+                                        {type === 'fertilizer' ? '使用肥料 (在庫連動)' : '主剤 (在庫連動・検索)'}
+                                    </label>
                                     <div className="flex items-center space-x-2">
                                         <label className="text-xs font-bold text-slate-400">混用あり？</label>
                                         <div onClick={() => setFormData({ ...formData, isMixing: !formData.isMixing })} className={`w-10 h-6 rounded-full relative cursor-pointer transition-colors ${formData.isMixing ? 'bg-green-500' : 'bg-slate-200'}`}>
@@ -310,33 +312,122 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
                                     <input
                                         type="text"
                                         list="pesticide-options"
-                                        value={formData.pesticide}
+                                        value={type === 'fertilizer' ? formData.fertilizer : formData.pesticide}
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            setFormData({ ...formData, pesticide: val });
+                                            const field = type === 'fertilizer' ? 'fertilizer' : 'pesticide';
+                                            setFormData({ ...formData, [field]: val });
 
                                             // Safety Check for Mixing
-                                            if (formData.mixes.length > 0) {
-                                                const risks = formData.mixes.filter(m => {
-                                                    const rules = INCOMPATIBLE_MIXES[val];
-                                                    return rules && rules.includes(m.name);
-                                                });
-                                                if (risks.length > 0) {
-                                                    alert(`【危険】選択した薬剤「${val}」は「${risks.map(r => r.name).join(', ')}」と混用できません！`);
-                                                    setFormData(prev => ({ ...prev, pesticide: "" }));
+                                            if (type === 'pesticide' && formData.mixes.length > 0) {
+                                                const rules = INCOMPATIBLE_MIXES[val];
+                                                if (rules) {
+                                                    const risks = formData.mixes.filter(m => rules.includes(m.name));
+                                                    if (risks.length > 0) {
+                                                        alert(`【危険】選択した薬剤「${val}」は「${risks.map(r => r.name).join(', ')}」と混用できません！`);
+                                                        setFormData(prev => ({ ...prev, [field]: "" }));
+                                                    }
                                                 }
                                             }
                                         }}
                                         className="w-full bg-red-50 border border-red-200 text-red-900 font-bold rounded-xl pl-10 pr-4 py-3.5 focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none placeholder:text-red-300"
-                                        placeholder="薬剤名を検索..."
+                                        placeholder={type === 'fertilizer' ? "肥料名を検索..." : "薬剤名を検索..."}
                                     />
                                     <datalist id="pesticide-options">
-                                        {/* Combine Inventory + Mock Extended DB */}
                                         {availableInventory.map(i => <option key={i.id} value={i.name}>在庫: {i.quantity}{i.unit}</option>)}
-                                        {MOCK_PESTICIDES_EXTENDED.map(p => <option key={`ext-${p.id}`} value={p.name}>{p.category} ({p.target})</option>)}
+                                        {type === 'pesticide' && MOCK_PESTICIDES_EXTENDED.map(p => <option key={`ext-${p.id}`} value={p.name}>{p.category} ({p.target})</option>)}
                                     </datalist>
                                 </div>
                             </div>
+
+                            {/* Advanced Fields: Dilution Calculator (Pesticide) */}
+                            {type === 'pesticide' && (
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 animate-in fade-in">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-slate-500 flex items-center"><Calculator size={14} className="mr-1" /> 希釈計算</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-400 mb-1">水量 (L)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.waterAmount || ''}
+                                                onChange={(e) => {
+                                                    const water = parseFloat(e.target.value);
+                                                    const ratio = parseFloat(formData.dilutionRatio || formData.dilution);
+                                                    let amount = formData.amount;
+                                                    if (water && ratio) {
+                                                        amount = (water * 1000 / ratio).toFixed(1);
+                                                    }
+                                                    setFormData({ ...formData, waterAmount: e.target.value, amount });
+                                                }}
+                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold"
+                                                placeholder="100"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-400 mb-1">希釈倍率</label>
+                                            <input
+                                                type="number"
+                                                value={formData.dilutionRatio || formData.dilution || ''}
+                                                onChange={(e) => {
+                                                    const ratio = parseFloat(e.target.value);
+                                                    const water = parseFloat(formData.waterAmount);
+                                                    let amount = formData.amount;
+                                                    if (water && ratio) {
+                                                        amount = (water * 1000 / ratio).toFixed(1);
+                                                    }
+                                                    setFormData({ ...formData, dilutionRatio: e.target.value, dilution: e.target.value, amount });
+                                                }}
+                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold"
+                                                placeholder="1000"
+                                            />
+                                        </div>
+                                    </div>
+                                    {formData.waterAmount && (formData.dilutionRatio || formData.dilution) && (
+                                        <div className="text-right">
+                                            <span className="text-xs text-slate-500 mr-2">必要薬量:</span>
+                                            <span className="text-lg font-bold text-green-600">{formData.amount} ml</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Advanced Fields: Components (Fertilizer) */}
+                            {type === 'fertilizer' && (
+                                <div className="space-y-4 animate-in fade-in">
+                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <label className="block text-xs font-bold text-slate-500 mb-2 ml-1">成分量 (%)</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className="relative">
+                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">N</span>
+                                                <input type="number" placeholder="8" className="w-full pl-6 pr-2 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-center"
+                                                    value={formData.componentN || ''} onChange={(e) => setFormData({ ...formData, componentN: e.target.value })} />
+                                            </div>
+                                            <div className="relative">
+                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">P</span>
+                                                <input type="number" placeholder="8" className="w-full pl-6 pr-2 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-center"
+                                                    value={formData.componentP || ''} onChange={(e) => setFormData({ ...formData, componentP: e.target.value })} />
+                                            </div>
+                                            <div className="relative">
+                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">K</span>
+                                                <input type="number" placeholder="8" className="w-full pl-6 pr-2 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-center"
+                                                    value={formData.componentK || ''} onChange={(e) => setFormData({ ...formData, componentK: e.target.value })} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">施肥基準</label>
+                                        <input
+                                            type="text"
+                                            value={formData.applicationAmount || ''}
+                                            onChange={(e) => setFormData({ ...formData, applicationAmount: e.target.value })}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 font-bold text-slate-800"
+                                            placeholder="例: 10kg/10a"
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Dilution & Amount for Main Agent */}
                             <div className="grid grid-cols-2 gap-4">

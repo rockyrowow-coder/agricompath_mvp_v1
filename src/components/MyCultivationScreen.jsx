@@ -11,12 +11,14 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
     const [name, setName] = useState('');
     const [quantity, setQuantity] = useState('');
     const [unit, setUnit] = useState('');
+    const [capacity, setCapacity] = useState(''); // New: Capacity per unit (e.g., 500)
+    const [capacityUnit, setCapacityUnit] = useState('ml'); // New: Unit of capacity
     const [category, setCategory] = useState('その他');
-    const [price, setPrice] = useState(''); // New Field
-    const [location, setLocation] = useState(''); // New Field
+    const [price, setPrice] = useState('');
+    const [location, setLocation] = useState('');
     const [receiptUrl, setReceiptUrl] = useState(null);
     const [uploading, setUploading] = useState(false);
-    const [analyzing, setAnalyzing] = useState(false); // AI Analysis State
+    const [analyzing, setAnalyzing] = useState(false);
 
     // Mock Suggestions for Search
     const SUGGESTIONS = [
@@ -62,9 +64,11 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
             setLocation("コメリパワー");
             setQuantity("1");
             setUnit("本");
+            setCapacity("500"); // Mock detected capacity
+            setCapacityUnit("ml");
             setCategory("農薬");
             setAnalyzing(false);
-            alert("✨ AIがレシートか情報を読み取りました！");
+            alert("✨ AIがレシート情報を読み取りました！(容量: 500ml)");
         }, 1500);
     };
 
@@ -74,11 +78,12 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
             alert('必須項目（資材名、数量、単位、カテゴリ）を入力してください。');
             return;
         }
-        // Receipt is optional now if user manually inputs, but encouraged
         onSubmit({
             name,
             quantity,
             unit,
+            capacity: capacity ? parseFloat(capacity) : null,
+            capacityUnit,
             category,
             price: price ? parseInt(price) : null,
             location,
@@ -142,6 +147,35 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
                             </div>
                         </div>
 
+                        {/* Capacity Inputs */}
+                        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">1個あたりの容量</label>
+                                <input
+                                    type="number"
+                                    value={capacity}
+                                    onChange={(e) => setCapacity(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-100 text-sm font-bold text-slate-800"
+                                    placeholder="例: 500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">容量単位</label>
+                                <select
+                                    value={capacityUnit}
+                                    onChange={(e) => setCapacityUnit(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-100 text-sm font-bold text-slate-800"
+                                >
+                                    <option value="ml">ml</option>
+                                    <option value="L">L</option>
+                                    <option value="g">g</option>
+                                    <option value="kg">kg</option>
+                                    <option value="個">個</option>
+                                </select>
+                            </div>
+                        </div>
+
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">カテゴリ</label>
@@ -171,7 +205,7 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
 
                         <div className="grid grid-cols-3 gap-3">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">数量</label>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">購入数量</label>
                                 <input
                                     type="number"
                                     value={quantity}
@@ -181,13 +215,13 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">単位</label>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">購入単位</label>
                                 <input
                                     type="text"
                                     value={unit}
                                     onChange={(e) => setUnit(e.target.value)}
                                     className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-bold text-slate-800"
-                                    placeholder="袋/L"
+                                    placeholder="袋/本"
                                 />
                             </div>
                             <div>
@@ -369,7 +403,9 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                     category: newMaterial.category,
                     price: newMaterial.price,
                     location: newMaterial.location,
-                    receipt_url: newMaterial.receiptUrl
+                    receipt_url: newMaterial.receiptUrl,
+                    capacity: newMaterial.capacity,
+                    capacity_unit: newMaterial.capacityUnit
                 }]);
 
             if (error) throw error;
@@ -620,91 +656,121 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
 }
 
 function GanttView({ records }) {
-    // Determine date range (past 14 days + future 7 days for demo)
+    // Date Range: -14 to +14 days
     const today = new Date();
     const dates = [];
-    for (let i = -14; i <= 7; i++) {
+    for (let i = -14; i <= 14; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
         dates.push(d.toISOString().split('T')[0]);
     }
 
-    // Group by crop
     const crops = [...new Set(records.map(r => r.crop))];
+    const [activeCrop, setActiveCrop] = useState(crops[0] || 'all');
+    const [filterType, setFilterType] = useState('all'); // all, pesticide, fertilizer, work, harvest
+
+    // Filter Logic
+    const filteredRecords = records.filter(r => {
+        if (activeCrop !== 'all' && r.crop !== activeCrop) return false;
+        if (filterType !== 'all' && r.type !== filterType) return false;
+        return true;
+    });
+
+    const displayCrops = activeCrop === 'all' ? crops : [activeCrop];
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in">
-            <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                <h3 className="text-sm font-bold text-slate-700">栽培工程チャート</h3>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in flex flex-col h-[500px]">
+            {/* Header Controls */}
+            <div className="p-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                <div className="flex space-x-2 overflow-x-auto no-scrollbar max-w-[60%]">
+                    <button onClick={() => setActiveCrop('all')} className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${activeCrop === 'all' ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>全て</button>
+                    {crops.map(c => (
+                        <button key={c} onClick={() => setActiveCrop(c)} className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${activeCrop === c ? 'bg-green-600 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>{c}</button>
+                    ))}
+                </div>
+                <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-green-100">
+                    <option value="all">全作業</option>
+                    <option value="pesticide">防除</option>
+                    <option value="fertilizer">施肥</option>
+                    <option value="harvest">収穫</option>
+                    <option value="work">作業</option>
+                </select>
             </div>
-            <div className="overflow-x-auto pb-4">
-                <div className="min-w-[800px] p-4">
-                    {/* Header Dates */}
-                    <div className="flex ml-24 mb-4">
-                        {dates.map((date) => {
-                            const d = new Date(date);
-                            const isToday = d.toDateString() === new Date().toDateString();
-                            return (
-                                <div key={date} className={`flex-shrink-0 w-8 text-center text-[10px] font-bold ${isToday ? 'text-green-600' : 'text-slate-400'}`}>
-                                    {d.getDate()}
-                                </div>
-                            );
-                        })}
-                    </div>
 
-                    {/* Rows */}
-                    <div className="space-y-6">
-                        {crops.map(crop => (
-                            <div key={crop} className="relative">
-                                {/* Row Label */}
-                                <div className="absolute left-0 top-0 w-20 flex items-center space-x-1.5 pt-1">
-                                    <div className="bg-green-100 p-1.5 rounded-lg"><Sprout size={14} className="text-green-600" /></div>
-                                    <span className="text-xs font-bold text-slate-700 truncate">{crop}</span>
-                                </div>
+            <div className="flex-1 overflow-hidden flex flex-col">
+                <div className="overflow-auto flex-1 relative">
+                    <div className="min-w-[1000px] p-4">
+                        {/* Header Dates */}
+                        <div className="flex ml-24 mb-4 sticky top-0 z-10 bg-white/90 backdrop-blur pb-2 border-b border-slate-100">
+                            {dates.map((date) => {
+                                const d = new Date(date);
+                                const isToday = d.toDateString() === new Date().toDateString();
+                                return (
+                                    <div key={date} className={`flex-shrink-0 w-8 text-center text-[10px] font-bold ${isToday ? 'text-green-600 bg-green-50 rounded-t' : 'text-slate-400'}`}>
+                                        <div className="mb-0.5">{d.getMonth() + 1}/{d.getDate()}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
 
-                                {/* Timeline Lane */}
-                                <div className="ml-24 flex relative h-8 items-center bg-slate-50 rounded-full">
-                                    {/* Grid Lines */}
-                                    {dates.map((date) => (
-                                        <div key={date} className="flex-shrink-0 w-8 h-full border-r border-slate-200/50"></div>
-                                    ))}
+                        {/* Rows */}
+                        <div className="space-y-6">
+                            {displayCrops.map(crop => (
+                                <div key={crop} className="relative">
+                                    {/* Row Label */}
+                                    <div className="absolute left-0 top-0 w-24 flex items-center space-x-1.5 pt-1 bg-white z-10 pr-2">
+                                        <div className="bg-green-100 p-1.5 rounded-lg shrink-0"><Sprout size={14} className="text-green-600" /></div>
+                                        <span className="text-xs font-bold text-slate-700 truncate">{crop}</span>
+                                    </div>
 
-                                    {/* Record Bars */}
-                                    {records.filter(r => r.crop === crop).map(record => {
-                                        const recordDate = record.date;
-                                        const dateIndex = dates.indexOf(recordDate);
-                                        if (dateIndex === -1) return null;
+                                    {/* Timeline Lane */}
+                                    <div className="ml-24 flex relative h-10 items-center bg-slate-50 rounded-lg border border-slate-100">
+                                        {/* Grid Lines */}
+                                        {dates.map((date) => (
+                                            <div key={date} className="flex-shrink-0 w-8 h-full border-r border-slate-200/50"></div>
+                                        ))}
 
-                                        let colorClass = "bg-slate-400";
-                                        if (record.type === 'pesticide') colorClass = "bg-red-400";
-                                        if (record.type === 'fertilizer') colorClass = "bg-green-500";
-                                        if (record.type === 'harvest') colorClass = "bg-orange-400";
-                                        if (record.type === 'work') colorClass = "bg-blue-400"; // Added color for work
+                                        {/* Record Bars */}
+                                        {filteredRecords.filter(r => r.crop === crop).map(record => {
+                                            const recordDate = record.date;
+                                            const dateIndex = dates.indexOf(recordDate);
+                                            if (dateIndex === -1) return null;
 
-                                        return (
-                                            <div
-                                                key={record.id}
-                                                className={`absolute h-6 rounded-md shadow-sm border border-white/20 ${colorClass} group cursor-pointer hover:z-10 hover:scale-110 transition-transform`}
-                                                style={{ left: `${dateIndex * 32 + 2}px`, width: '28px' }}
-                                            >
-                                                {/* Tooltip */}
-                                                <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-slate-800 text-white text-[10px] p-2 rounded-lg font-bold z-20 shadow-xl pointer-events-none">
-                                                    {record.detail || record.workType || "作業"}
+                                            let colorClass = "bg-slate-400";
+                                            if (record.type === 'pesticide') colorClass = "bg-red-400";
+                                            if (record.type === 'fertilizer') colorClass = "bg-green-500";
+                                            if (record.type === 'harvest') colorClass = "bg-orange-400";
+                                            if (record.type === 'work') colorClass = "bg-blue-400";
+
+                                            return (
+                                                <div
+                                                    key={record.id}
+                                                    className={`absolute top-1 h-8 rounded-md shadow-sm border border-white/20 ${colorClass} group cursor-pointer hover:z-20 hover:scale-110 transition-transform`}
+                                                    style={{ left: `${dateIndex * 32 + 2}px`, width: '28px' }}
+                                                >
+                                                    {/* Tooltip */}
+                                                    <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-800 text-white text-[10px] p-2 rounded-lg z-30 shadow-xl pointer-events-none text-left">
+                                                        <div className="font-bold mb-0.5">{record.date}</div>
+                                                        <div className="font-bold text-yellow-300 mb-1">{record.detail || record.workType}</div>
+                                                        <div>{record.amount} {record.range}</div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                            {displayCrops.length === 0 && <div className="text-center text-slate-400 text-xs py-10">表示する作物がありません</div>}
+                        </div>
                     </div>
                 </div>
             </div>
-            <div className="border-t border-slate-100 p-3 flex justify-center space-x-4">
-                <div className="flex items-center space-x-1"><span className="w-3 h-3 rounded bg-red-400"></span><span className="text-[10px] font-bold text-slate-500">防除</span></div>
-                <div className="flex items-center space-x-1"><span className="w-3 h-3 rounded bg-green-500"></span><span className="text-[10px] font-bold text-slate-500">施肥</span></div>
-                <div className="flex items-center space-x-1"><span className="w-3 h-3 rounded bg-orange-400"></span><span className="text-[10px] font-bold text-slate-500">収穫</span></div>
-                <div className="flex items-center space-x-1"><span className="w-3 h-3 rounded bg-blue-400"></span><span className="text-[10px] font-bold text-slate-500">作業</span></div>
+
+            <div className="border-t border-slate-100 p-2 flex justify-center space-x-3 bg-slate-50">
+                <div className="flex items-center space-x-1"><span className="w-2.5 h-2.5 rounded bg-red-400"></span><span className="text-[10px] font-bold text-slate-500">防除</span></div>
+                <div className="flex items-center space-x-1"><span className="w-2.5 h-2.5 rounded bg-green-500"></span><span className="text-[10px] font-bold text-slate-500">施肥</span></div>
+                <div className="flex items-center space-x-1"><span className="w-2.5 h-2.5 rounded bg-orange-400"></span><span className="text-[10px] font-bold text-slate-500">収穫</span></div>
+                <div className="flex items-center space-x-1"><span className="w-2.5 h-2.5 rounded bg-blue-400"></span><span className="text-[10px] font-bold text-slate-500">作業</span></div>
             </div>
         </div>
     );

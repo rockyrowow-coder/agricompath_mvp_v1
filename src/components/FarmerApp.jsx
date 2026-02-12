@@ -160,22 +160,24 @@ export default function FarmerApp() {
 
                         if (sharesData) {
                             const sharedRecords = sharesData
-                                .map(s => s.records)
-                                .filter(r => r && r.user_id !== user.id)
-                                .map(r => ({
-                                    id: `shared-${r.id}`,
-                                    date: r.date,
-                                    type: r.type, // Keep original type (work, pesticide, etc)
-                                    title: r.crop,
-                                    comment: r.memo || (r.type === 'work' ? r.work_type : r.detail), // Map memo/detail to comment
-                                    amount: r.amount,
-                                    pesticide: r.pesticide,
-                                    user: 'コミュニティメンバー', // Generic name
-                                    isFollowed: true, // Show in Following tab
-                                    community: 'コミュニティ共有',
-                                    community_id: s.community_id,
-                                    timestamp: new Date(r.created_at)
-                                }));
+                                .filter(s => s.records && s.records.user_id !== user.id)
+                                .map(s => {
+                                    const r = s.records;
+                                    return {
+                                        id: `shared-${r.id}`,
+                                        date: r.date,
+                                        type: r.type, // Keep original type (work, pesticide, etc)
+                                        title: r.crop,
+                                        comment: r.memo || (r.type === 'work' ? r.work_type : r.detail), // Map memo/detail to comment
+                                        amount: r.amount,
+                                        pesticide: r.pesticide,
+                                        user: 'コミュニティメンバー', // Generic name
+                                        isFollowed: true, // Show in Following tab
+                                        community: 'コミュニティ共有',
+                                        community_id: s.community_id,
+                                        timestamp: new Date(r.created_at)
+                                    };
+                                });
                             communityTimelineItems = [...communityTimelineItems, ...sharedRecords];
                         }
                     }

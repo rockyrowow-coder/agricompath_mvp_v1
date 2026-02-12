@@ -75,18 +75,28 @@ export function FriendList({ userId }) {
         }
     };
 
-    const handleSearch = async () => {
-        if (!searchQuery.trim()) return;
-        setLoading(true);
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .ilike('display_name', `%${searchQuery}%`)
-            .neq('id', userId) // Don't show self
-            .limit(20);
+    const handleSearch = async (query = "") => {
 
-        if (data) setSearchResults(data);
-        setLoading(false);
+        try {
+            let queryBuilder = supabase
+                .from('profiles')
+                .select('*')
+                .neq('id', userId); // Don't show self
+
+            if (query) {
+                queryBuilder = queryBuilder.ilike('display_name', `%${query}%`);
+            } else {
+                // Limit initial load if needed, but for MVP load all (up to default limit)
+                queryBuilder = queryBuilder.limit(20);
+            }
+
+            const { data, error } = await queryBuilder;
+
+            if (error) throw error;
+            setSearchResults(data || []);
+        } catch (error) {
+            console.error('Error searching:', error);
+        }
     };
 
     const sendRequest = async (targetId) => {
@@ -187,15 +197,18 @@ export function FriendList({ userId }) {
 
             {status === 'search' && (
                 <div className="space-y-4">
-                    <div className="flex space-x-2">
+                    <div className="relative mb-6">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                         <input
                             type="text"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="名前で検索..."
-                            className="flex-1 bg-slate-100 border-none rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-green-200 outline-none"
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                handleSearch(e.target.value);
+                            }}
+                            placeholder="ユーザー名で検索..."
+                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 font-bold text-slate-800"
                         />
-                        <button onClick={handleSearch} className="bg-slate-800 text-white p-3 rounded-xl"><Search size={20} /></button>
                     </div>
                     {loading && <p className="text-center text-xs text-slate-400">検索中...</p>}
                     <div className="space-y-3">
