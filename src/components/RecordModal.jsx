@@ -24,7 +24,8 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
         isMixing: false,
         yieldAmount: "",
         yieldUnit: "kg",
-        imageUrl: null
+        imageUrl: null,
+        visibility: 'community' // public, community, private
     });
     const [showMap, setShowMap] = useState(false);
     const [timerRunning, setTimerRunning] = useState(false);
@@ -33,7 +34,7 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
     const [mixRatio, setMixRatio] = useState("");
     const [mixAmount, setMixAmount] = useState("");
     const [uploading, setUploading] = useState(false);
-    const [isListening, setIsListening] = useState(false);
+    const [listeningField, setListeningField] = useState(null); // 'memo' or 'target'
     const [sources, setSources] = useState([]);
     const [unit, setUnit] = useState('ml'); // Default unit
 
@@ -81,17 +82,17 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
         }
     };
 
-    const toggleVoiceInput = () => {
+    const toggleVoiceInput = (field = 'memo') => {
         if (!('webkitSpeechRecognition' in window)) {
             alert("このブラウザは音声入力に対応していません。");
             return;
         }
 
-        if (isListening) {
-            setIsListening(false);
+        if (listeningField) {
+            setListeningField(null);
             // Stop logic handles automatically by not restarting
         } else {
-            setIsListening(true);
+            setListeningField(field);
             const recognition = new window.webkitSpeechRecognition();
             recognition.lang = 'ja-JP';
             recognition.continuous = false;
@@ -99,17 +100,21 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
 
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
-                setFormData(prev => ({ ...prev, memo: (prev.memo ? prev.memo + '\n' : '') + transcript }));
-                setIsListening(false);
+                if (field === 'memo') {
+                    setFormData(prev => ({ ...prev, memo: (prev.memo ? prev.memo + '\n' : '') + transcript }));
+                } else {
+                    setFormData(prev => ({ ...prev, [field]: transcript }));
+                }
+                setListeningField(null);
             };
 
             recognition.onerror = (event) => {
                 console.error(event.error);
-                setIsListening(false);
+                setListeningField(null);
             };
 
             recognition.onend = () => {
-                setIsListening(false);
+                setListeningField(null);
             }
 
             recognition.start();
@@ -515,7 +520,28 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
                             )}
 
                             {type === 'pesticide' && (
-                                <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">対象 (虫・病気など)</label><select value={formData.target} onChange={(e) => setFormData({ ...formData, target: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 appearance-none focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none"><option value="" disabled>選択してください</option>{MOCK_TARGETS.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center px-1">
+                                        <label className="text-xs font-bold text-slate-500 ml-1">対象 (虫・病気など)</label>
+                                        <button onClick={() => toggleVoiceInput('target')} type="button" className={`flex items-center space-x-1 text-xs font-bold px-2 py-1 rounded-full transition-colors ${listeningField === 'target' ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600'}`}>
+                                            <Mic size={12} />
+                                            <span>{listeningField === 'target' ? '聞いています...' : '音声入力'}</span>
+                                        </button>
+                                    </div>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            list="target-options"
+                                            value={formData.target}
+                                            onChange={(e) => setFormData({ ...formData, target: e.target.value })}
+                                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none"
+                                            placeholder="アブラムシ, うどんこ病..."
+                                        />
+                                        <datalist id="target-options">
+                                            {MOCK_TARGETS.map(t => <option key={t} value={t} />)}
+                                        </datalist>
+                                    </div>
+                                </div>
                             )}
                         </section>
                     )}
@@ -561,9 +587,9 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
                         <div className="space-y-1.5 align-middle">
                             <div className="flex justify-between items-center px-1">
                                 <label className="text-xs font-bold text-slate-500 ml-1">メモ (任意)</label>
-                                <button onClick={toggleVoiceInput} type="button" className={`flex items-center space-x-1 text-xs font-bold px-2 py-1 rounded-full transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600'}`}>
-                                    <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-white' : 'bg-slate-600'}`}></div>
-                                    <span>{isListening ? '聞いています...' : '音声入力'}</span>
+                                <button onClick={() => toggleVoiceInput('memo')} type="button" className={`flex items-center space-x-1 text-xs font-bold px-2 py-1 rounded-full transition-colors ${listeningField === 'memo' ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600'}`}>
+                                    <div className={`w-2 h-2 rounded-full ${listeningField === 'memo' ? 'bg-white' : 'bg-slate-600'}`}></div>
+                                    <span>{listeningField === 'memo' ? '聞いています...' : '音声入力'}</span>
                                 </button>
                             </div>
                             <textarea value={formData.memo} onChange={(e) => setFormData({ ...formData, memo: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-medium rounded-xl p-3.5 h-24 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none resize-none"></textarea>

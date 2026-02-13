@@ -84,6 +84,22 @@ export function SettingsModal({ onClose, settings, onUpdate }) {
                 </div>
                 <div className="p-6 space-y-8 overflow-y-auto pb-safe">
                     <div className="space-y-4">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">基本設定</h3>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-slate-600 block">デフォルトの公開範囲</label>
+                            <select
+                                value={localSettings.default_visibility || 'community'}
+                                onChange={(e) => saveSettings({ ...localSettings, default_visibility: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-700 focus:ring-2 focus:ring-green-500 outline-none"
+                            >
+                                <option value="public">全体公開</option>
+                                <option value="community">コミュニティのみ</option>
+                                <option value="private">下書き (自分のみ)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
                         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">アカウント連携</h3>
 
                         <div className="space-y-2">
