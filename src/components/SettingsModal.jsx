@@ -73,16 +73,18 @@ export function SettingsModal({ onClose }) {
 
                     {/* Main Content */}
                     <div className="flex-1 flex flex-col min-w-0 bg-white">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
-                            <h3 className="text-xl font-bold text-slate-800">
-                                {activeTab === 'crops' ? '作物の詳細設定' : activeTab === 'fields' ? '圃場管理' : 'アカウント設定'}
-                            </h3>
-                            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                                <X size={24} className="text-slate-400" />
-                            </button>
-                        </div>
+                        {!editingCrop && (
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                                <h3 className="text-xl font-bold text-slate-800">
+                                    {activeTab === 'crops' ? '作物の詳細設定' : activeTab === 'fields' ? '圃場管理' : 'アカウント設定'}
+                                </h3>
+                                <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                                    <X size={24} className="text-slate-400" />
+                                </button>
+                            </div>
+                        )}
 
-                        <div className="flex-1 overflow-y-auto p-8">
+                        <div className={`flex-1 overflow-y-auto ${editingCrop ? 'p-0' : 'p-8'}`}>
                             {activeTab === 'crops' && (
                                 editingCrop ? (
                                     <CropSettingsEditor crop={editingCrop} onClose={() => setEditingCrop(null)} />
@@ -223,79 +225,93 @@ function CropSettingsEditor({ crop, onClose }) {
     };
 
     return (
-        <div className="space-y-8 animate-in slide-in-from-right-10">
-            <button onClick={onClose} className="flex items-center space-x-2 text-slate-400 hover:text-slate-600 font-bold mb-4">
-                <ChevronRight size={20} className="rotate-180" />
-                <span>戻る</span>
-            </button>
-
-            <div className="flex items-center space-x-4 mb-6">
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                    <Sprout size={24} />
+        <div className="h-full bg-white flex flex-col animate-in slide-in-from-right-10">
+            {/* Custom Header for Editor */}
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div className="flex items-center space-x-4">
+                    <button onClick={onClose} className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-400">
+                        <ChevronRight size={24} className="rotate-180" />
+                    </button>
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-800">{crop}</h2>
+                        <p className="text-xs font-bold text-green-600">カスタム設定</p>
+                    </div>
                 </div>
-                <div>
-                    <h2 className="text-2xl font-extrabold text-slate-800">{crop}</h2>
-                    <p className="text-slate-400 font-bold text-sm">カスタム設定エディタ</p>
-                </div>
+                <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
+                    <X size={24} />
+                </button>
             </div>
 
-            {/* Work Content */}
-            <div className="space-y-4">
-                <h4 className="font-bold text-slate-700 flex items-center space-x-2">
-                    <Settings size={18} />
-                    <span>作業内容のカスタマイズ</span>
-                </h4>
-                <div className="flex space-x-2">
-                    <input
-                        type="text"
-                        value={newWork}
-                        onChange={e => setNewWork(e.target.value)}
-                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="新しい作業名 (例: 葉面散布)"
-                    />
-                    <button onClick={addWork} className="bg-green-600 text-white p-3 rounded-xl hover:bg-green-500">
-                        <Plus size={20} />
-                    </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    {settings.work_types.length === 0 && <span className="text-slate-300 text-sm font-bold">追加されたカスタム作業はありません</span>}
-                    {settings.work_types.map(w => (
-                        <span key={w} className="bg-green-50 text-green-700 font-bold px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2">
-                            <span>{w}</span>
-                            <button onClick={() => removeWork(w)} className="text-green-400 hover:text-green-600"><X size={14} /></button>
-                        </span>
-                    ))}
-                </div>
-            </div>
+            <div className="p-8 space-y-8 flex-1 overflow-y-auto">
 
-            <div className="w-full h-px bg-slate-100 my-6"></div>
-
-            {/* Hests/Diseases */}
-            <div className="space-y-4">
-                <h4 className="font-bold text-slate-700 flex items-center space-x-2">
-                    <Leaf size={18} />
-                    <span>発生予察・対象病害虫</span>
-                </h4>
-                <div className="flex space-x-2">
-                    <input
-                        type="text"
-                        value={newPest}
-                        onChange={e => setNewPest(e.target.value)}
-                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="病害虫名 (例: コナジラミ)"
-                    />
-                    <button onClick={addPest} className="bg-green-600 text-white p-3 rounded-xl hover:bg-green-500">
-                        <Plus size={20} />
-                    </button>
+                <div className="flex items-center space-x-4 mb-6">
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                        <Sprout size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-extrabold text-slate-800">{crop}</h2>
+                        <p className="text-slate-400 font-bold text-sm">カスタム設定エディタ</p>
+                    </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    {settings.pests.length === 0 && <span className="text-slate-300 text-sm font-bold">追加された項目はありません</span>}
-                    {settings.pests.map(p => (
-                        <span key={p} className="bg-red-50 text-red-700 font-bold px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2">
-                            <span>{p}</span>
-                            <button onClick={() => removePest(p)} className="text-red-400 hover:text-red-600"><X size={14} /></button>
-                        </span>
-                    ))}
+
+                {/* Work Content */}
+                <div className="space-y-4">
+                    <h4 className="font-bold text-slate-700 flex items-center space-x-2">
+                        <Settings size={18} />
+                        <span>作業内容のカスタマイズ</span>
+                    </h4>
+                    <div className="flex space-x-2">
+                        <input
+                            type="text"
+                            value={newWork}
+                            onChange={e => setNewWork(e.target.value)}
+                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold outline-none focus:ring-2 focus:ring-green-500"
+                            placeholder="新しい作業名 (例: 葉面散布)"
+                        />
+                        <button onClick={addWork} className="bg-green-600 text-white p-3 rounded-xl hover:bg-green-500">
+                            <Plus size={20} />
+                        </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {settings.work_types.length === 0 && <span className="text-slate-300 text-sm font-bold">追加されたカスタム作業はありません</span>}
+                        {settings.work_types.map(w => (
+                            <span key={w} className="bg-green-50 text-green-700 font-bold px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2">
+                                <span>{w}</span>
+                                <button onClick={() => removeWork(w)} className="text-green-400 hover:text-green-600"><X size={14} /></button>
+                            </span>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="w-full h-px bg-slate-100 my-6"></div>
+
+                {/* Hests/Diseases */}
+                <div className="space-y-4">
+                    <h4 className="font-bold text-slate-700 flex items-center space-x-2">
+                        <Leaf size={18} />
+                        <span>発生予察・対象病害虫</span>
+                    </h4>
+                    <div className="flex space-x-2">
+                        <input
+                            type="text"
+                            value={newPest}
+                            onChange={e => setNewPest(e.target.value)}
+                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold outline-none focus:ring-2 focus:ring-green-500"
+                            placeholder="病害虫名 (例: コナジラミ)"
+                        />
+                        <button onClick={addPest} className="bg-green-600 text-white p-3 rounded-xl hover:bg-green-500">
+                            <Plus size={20} />
+                        </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {settings.pests.length === 0 && <span className="text-slate-300 text-sm font-bold">追加された項目はありません</span>}
+                        {settings.pests.map(p => (
+                            <span key={p} className="bg-red-50 text-red-700 font-bold px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2">
+                                <span>{p}</span>
+                                <button onClick={() => removePest(p)} className="text-red-400 hover:text-red-600"><X size={14} /></button>
+                            </span>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

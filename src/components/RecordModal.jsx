@@ -245,11 +245,50 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-32">
                     {/* Photo Upload */}
-                    <div className="bg-slate-50 rounded-2xl h-32 flex items-center justify-center border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-100 transition-colors">
-                        <div className="flex flex-col items-center space-y-2 text-slate-400">
-                            <Camera size={24} />
-                            <span className="text-xs font-bold">証拠写真を撮影 (必須)</span>
-                        </div>
+                    <div
+                        onClick={() => document.getElementById('photo-upload').click()}
+                        className="bg-slate-50 rounded-2xl h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-100 transition-colors relative overflow-hidden"
+                    >
+                        <input
+                            type="file"
+                            id="photo-upload"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                                const files = Array.from(e.target.files);
+                                // In a real app, upload to Supabase Storage here and get URLs
+                                // For now, we'll just create local object URLs for preview
+                                const newImages = files.map(file => URL.createObjectURL(file));
+                                setFormData({ ...formData, images: [...formData.images, ...newImages] });
+                            }}
+                        />
+                        {formData.images.length > 0 ? (
+                            <div className="flex space-x-2 overflow-x-auto p-2 w-full h-full items-center">
+                                {formData.images.map((img, idx) => (
+                                    <div key={idx} className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-slate-200">
+                                        <img src={img} alt="preview" className="w-full h-full object-cover" />
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setFormData({ ...formData, images: formData.images.filter((_, i) => i !== idx) });
+                                            }}
+                                            className="absolute top-0 right-0 bg-black/50 text-white p-0.5 rounded-bl-lg"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                    <Plus size={20} />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center space-y-2 text-slate-400">
+                                <Camera size={24} />
+                                <span className="text-xs font-bold">証拠写真を撮影 (必須)</span>
+                            </div>
+                        )}
                     </div>
 
                     <section className="space-y-4">
@@ -357,7 +396,20 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
                             {/* Dilution & Amount for Main Agent */}
                             <div className="grid grid-cols-2 gap-4">
                                 {type === 'pesticide' && <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">希釈倍率</label><input type="number" value={formData.dilution} onChange={(e) => setFormData({ ...formData, dilution: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none" placeholder="1000" /></div>}
-                                <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">使用量</label><input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none" placeholder="100" /></div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 ml-1">使用量</label>
+                                    <div className="flex space-x-2">
+                                        <input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none" placeholder="100" />
+                                        <select value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })} className="w-20 bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 appearance-none focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none">
+                                            <option value="L">L</option>
+                                            <option value="mL">mL</option>
+                                            <option value="kg">kg</option>
+                                            <option value="g">g</option>
+                                            <option value="袋">袋</option>
+                                            <option value="本">本</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Mixing Section */}
