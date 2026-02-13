@@ -275,7 +275,7 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-slate-100 bg-white rounded-b-3xl">
+                <div className="p-4 border-t border-slate-100 bg-white rounded-b-3xl pb-8 md:pb-4">
                     <button
                         onClick={handleSubmit}
                         disabled={loading}

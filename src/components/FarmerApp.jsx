@@ -362,9 +362,9 @@ export default function FarmerApp() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden border-x border-slate-200 shadow-2xl relative">
-            {/* Header */}
-            <header className="flex items-center justify-between px-5 py-4 bg-white border-b border-slate-100 z-10 shadow-sm shrink-0">
+        <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans border-x border-slate-200 shadow-2xl relative pb-24">
+            {/* Header (Fixed) */}
+            <header className="fixed top-0 left-0 right-0 md:max-w-md md:mx-auto bg-white border-b border-slate-100 z-30 shadow-sm px-5 py-4 h-[72px] flex items-center justify-between transition-transform duration-300">
                 <div className="flex items-center space-x-2.5">
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-green-400 to-green-600 flex items-center justify-center shadow-lg shadow-green-200">
                         <Sprout size={20} className="text-white" />
@@ -392,8 +392,8 @@ export default function FarmerApp() {
                 </div>
             </header>
 
-            {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide bg-slate-50">
+            {/* Main Content Area (With Padding for Header) */}
+            <main className="flex-1 w-full pt-[72px] bg-slate-50">
                 <Routes>
                     {/* Note: Root path inside FarmerApp is effectively /farmer/* usually, but here App.jsx handles base. 
                 If App.jsx renders FarmerApp on '/', then paths are relative to root. */}
@@ -417,9 +417,9 @@ export default function FarmerApp() {
                 />
             )}
 
-            {/* Bottom Navigation */}
-            <div className="absolute bottom-0 w-full z-20 pointer-events-none">
-                <div className="flex justify-center mb-[-28px] pointer-events-auto relative z-30">
+            {/* Bottom Navigation (Fixed) */}
+            <div className="fixed bottom-0 left-0 right-0 md:max-w-md md:mx-auto z-30 pointer-events-none">
+                <div className="flex justify-center mb-[-28px] pointer-events-auto relative z-40">
                     <button
                         onClick={() => setShowRecordMenu(true)}
                         className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full shadow-xl shadow-green-200 flex items-center justify-center border-4 border-slate-50 transition-transform active:scale-90 group hover:shadow-2xl hover:shadow-green-300"
@@ -427,7 +427,7 @@ export default function FarmerApp() {
                         <Camera size={30} className="text-white group-hover:scale-110 transition-transform" />
                     </button>
                 </div>
-                <nav className="bg-white/95 backdrop-blur border-t border-slate-100 pb-safe pt-2 pointer-events-auto rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
+                <nav className="bg-white/95 backdrop-blur border-t border-slate-100 pb-safe pt-2 pointer-events-auto rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] h-20 md:h-24">
                     <div className="flex justify-between items-end h-16 px-4">
                         <NavItem icon={<Home size={24} strokeWidth={activeTab === 'home' ? 2.5 : 2} />} label="ホーム" active={activeTab === 'home'} onClick={() => navigate('/')} />
                         <NavItem icon={<ClipboardList size={24} strokeWidth={activeTab === 'timeline' ? 2.5 : 2} />} label="タイムライン" active={activeTab === 'timeline'} onClick={() => navigate('/timeline')} />
@@ -446,7 +446,7 @@ export default function FarmerApp() {
             )}
 
             {notification && (
-                <div className="absolute top-20 left-4 right-4 bg-slate-800 text-white px-5 py-4 rounded-xl shadow-2xl flex items-center animate-in fade-in slide-in-from-top-4 z-50">
+                <div className="fixed top-24 left-4 right-4 md:max-w-sm md:mx-auto bg-slate-800 text-white px-5 py-4 rounded-xl shadow-2xl flex items-center animate-in fade-in slide-in-from-top-4 z-50">
                     <CheckCircle2 size={24} className="mr-3 text-green-400" />
                     <span className="text-base font-bold">{notification}</span>
                 </div>
