@@ -316,14 +316,19 @@ export function CommunityDetailScreen() {
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {activeThread ? (
                     // Thread View: Show Parent then Replies
-                    <>
-                        <PostItem item={activeThread} />
-                        <div className="pl-4 border-l-2 border-slate-200 ml-4 space-y-4">
-                            {activeThread.replies?.map(reply => (
-                                <PostItem key={reply.id} item={reply} isReply={true} />
-                            ))}
-                        </div>
-                    </>
+                    (() => {
+                        const targetThread = threads.find(t => t.id === activeThread.id) || activeThread;
+                        return (
+                            <>
+                                <PostItem item={targetThread} />
+                                <div className="pl-4 border-l-2 border-slate-200 ml-4 space-y-4">
+                                    {targetThread.replies?.map(reply => (
+                                        <PostItem key={reply.id} item={reply} isReply={true} />
+                                    ))}
+                                </div>
+                            </>
+                        );
+                    })()
                 ) : (
                     // Default View: List of Topics/Records
                     visibleThreads.map(item => {

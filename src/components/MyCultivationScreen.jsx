@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { Download, Layout, CalendarDays, Map as MapIcon, BarChart3, Sprout, Package, Receipt, FileText, Search, Filter, Plus, X, CheckCircle2, Camera } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, Layout, CalendarDays, Map as MapIcon, BarChart3, Sprout, Package, Receipt, FileText, Search, Filter, Plus, X, CheckCircle2, Camera, Store } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { RecordTypeBadge } from './Shared';
 import { MOCK_AI_TAGS } from '../data/constants';
+import { ProcurementSourceModal } from './ProcurementSourceModal';
 
 // MaterialRegisterModal component
 // MaterialRegisterModal component
@@ -19,6 +20,16 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
     const [receiptUrl, setReceiptUrl] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [analyzing, setAnalyzing] = useState(false);
+    const [sources, setSources] = useState([]);
+    const [sourceId, setSourceId] = useState('');
+
+    useEffect(() => {
+        const fetchSources = async () => {
+            const { data } = await supabase.from('procurement_sources').select('*').order('created_at', { ascending: false });
+            if (data) setSources(data);
+        };
+        fetchSources();
+    }, []);
 
     // Mock Suggestions for Search
     const SUGGESTIONS = [
@@ -87,7 +98,8 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
             category,
             price: price ? parseInt(price) : null,
             location,
-            receiptUrl
+            receiptUrl,
+            source_id: sourceId || null
         });
     };
 
@@ -203,7 +215,7 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">購入数量</label>
                                 <input
@@ -223,6 +235,24 @@ const MaterialRegisterModal = ({ onClose, onSubmit }) => {
                                     className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-bold text-slate-800"
                                     placeholder="袋/本"
                                 />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">調達先</label>
+                                <select
+                                    value={sourceId}
+                                    onChange={(e) => {
+                                        setSourceId(e.target.value);
+                                        const selected = sources.find(s => s.id === e.target.value);
+                                        if (selected) setLocation(selected.name);
+                                    }}
+                                    className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 text-sm font-bold text-slate-800"
+                                >
+                                    <option value="">選択なし</option>
+                                    {sources.map(s => <option key={s.id} value={s.id}>{s.name} ({s.type})</option>)}
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">金額 (円)</label>
@@ -387,7 +417,8 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [showRegisterModal, setShowRegisterModal] = useState(false);
-    const [showCalendarImport, setShowCalendarImport] = useState(false); // New State
+    const [showCalendarImport, setShowCalendarImport] = useState(false);
+    const [showSourceModal, setShowSourceModal] = useState(false);
     const { user } = useAuth();
 
     const handleRegisterMaterial = async (newMaterial) => {
@@ -405,7 +436,8 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                     location: newMaterial.location,
                     receipt_url: newMaterial.receiptUrl,
                     capacity: newMaterial.capacity,
-                    capacity_unit: newMaterial.capacityUnit
+                    capacity_unit: newMaterial.capacityUnit,
+                    source_id: newMaterial.source_id
                 }]);
 
             if (error) throw error;
@@ -592,11 +624,19 @@ export function MyCultivationScreen({ records, onExport, inventory }) {
                         <Plus size={20} />
                         <span>新しい資材を登録</span>
                     </button>
+                    <button onClick={() => setShowSourceModal(true)} className="col-span-1 md:col-span-2 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 font-bold hover:bg-slate-100 transition-colors flex items-center justify-center space-x-2 text-xs">
+                        <Store size={16} />
+                        <span>購入・調達先の管理</span>
+                    </button>
                 </div>
             )}
 
             {showRegisterModal && (
                 <MaterialRegisterModal onClose={() => setShowRegisterModal(false)} onSubmit={handleRegisterMaterial} />
+            )}
+
+            {showSourceModal && (
+                <ProcurementSourceModal onClose={() => setShowSourceModal(false)} />
             )}
 
             {/* Calendar Import Modal Integration */}

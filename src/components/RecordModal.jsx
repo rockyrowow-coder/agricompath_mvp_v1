@@ -34,6 +34,16 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
     const [mixAmount, setMixAmount] = useState("");
     const [uploading, setUploading] = useState(false);
     const [isListening, setIsListening] = useState(false);
+    const [sources, setSources] = useState([]);
+    const [unit, setUnit] = useState('ml'); // Default unit
+
+    useEffect(() => {
+        const fetchSources = async () => {
+            const { data } = await supabase.from('procurement_sources').select('*').order('created_at', { ascending: false });
+            if (data) setSources(data);
+        };
+        fetchSources();
+    }, []);
 
     // Merge defaults with User Settings
     const availableCrops = settings?.custom_crops ? [...MOCK_CROPS, ...settings.custom_crops] : MOCK_CROPS;
@@ -432,7 +442,33 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
                             {/* Dilution & Amount for Main Agent */}
                             <div className="grid grid-cols-2 gap-4">
                                 {type === 'pesticide' && <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">希釈倍率</label><input type="number" value={formData.dilution} onChange={(e) => setFormData({ ...formData, dilution: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none text-lg" placeholder="1000" /></div>}
-                                <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">使用量</label><input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none text-lg" placeholder="100" /></div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 ml-1">使用量</label>
+                                    <div className="flex space-x-2">
+                                        <input
+                                            type="number"
+                                            value={formData.amount}
+                                            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                            className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none text-lg"
+                                            placeholder="100"
+                                        />
+                                        <select
+                                            value={formData.unit || unit}
+                                            onChange={(e) => {
+                                                setUnit(e.target.value);
+                                                setFormData({ ...formData, unit: e.target.value });
+                                            }}
+                                            className="w-24 bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 appearance-none focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none"
+                                        >
+                                            <option value="ml">ml</option>
+                                            <option value="L">L</option>
+                                            <option value="g">g</option>
+                                            <option value="kg">kg</option>
+                                            <option value="袋">袋</option>
+                                            <option value="本">本</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Mixing Section */}
@@ -487,6 +523,19 @@ export function RecordModal({ type, onClose, onSubmit, inventory, settings }) {
                     {type === 'accounting' && (
                         <section className="space-y-4">
                             <div className="flex items-center space-x-2 text-yellow-600 font-extrabold text-xs uppercase tracking-wider bg-yellow-50 inline-block px-3 py-1 rounded-md mb-2"><ClipboardList size={14} /> <span>経理詳細</span></div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-500 ml-1">調達先 (支払先)</label>
+                                <select
+                                    value={formData.source_id || ""}
+                                    onChange={(e) => setFormData({ ...formData, source_id: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 appearance-none focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none"
+                                >
+                                    <option value="">選択してください</option>
+                                    {sources.map(s => <option key={s.id} value={s.id}>{s.name} ({s.type})</option>)}
+                                </select>
+                            </div>
+
                             <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">金額 (円)</label><input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 text-right focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none" placeholder="0" /></div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-500 ml-1">勘定科目</label>
