@@ -10,7 +10,7 @@ export function SettingsModal({ onClose }) {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('crops'); // crops, fields, account
-    const [myCrops, setMyCrops] = useState([]);
+    const [myCrops, setMyCrops] = useState(MOCK_CROPS); // Initialize with mock data to prevent empty state
     const [fields, setFields] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -21,16 +21,22 @@ export function SettingsModal({ onClose }) {
         if (!user) return;
         const fetchData = async () => {
             setLoading(true);
-            // Fetch User Profile for crops (mocking structure, assuming profile has crops array or we use settings table)
-            // For MVP, we might fetch from 'profiles' or just local state if not fully persistent
-            // Let's assume we fetch fields
-            const { data: fieldsData } = await supabase.from('fields').select('*');
-            if (fieldsData) setFields(fieldsData);
+            try {
+                // Fetch User Profile for crops (mocking structure, assuming profile has crops array or we use settings table)
+                // For MVP, we might fetch from 'profiles' or just local state if not fully persistent
+                // Let's assume we fetch fields
+                const { data: fieldsData, error } = await supabase.from('fields').select('*');
+                if (error) throw error;
+                if (fieldsData) setFields(fieldsData);
 
-            // Fetch Crop Settings to see which crops are "active" or configured
-            // Or just use MOCK_CROPS as selectable
-            setMyCrops(MOCK_CROPS); // Simulating available crops
-            setLoading(false);
+                // Fetch Crop Settings to see which crops are "active" or configured
+                // Or just use MOCK_CROPS as selectable
+                // setMyCrops(MOCK_CROPS); // Already initialized
+            } catch (error) {
+                console.error("Error fetching settings data:", error);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchData();
     }, [user]);

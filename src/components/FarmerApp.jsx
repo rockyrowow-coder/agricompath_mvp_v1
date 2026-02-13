@@ -442,7 +442,7 @@ export default function FarmerApp() {
                 modalType === 'csv' ? <CSVExportModal onClose={() => setModalType(null)} records={myRecords} /> :
                     modalType === 'settings' ? <SettingsModal onClose={() => setModalType(null)} settings={userSettings} onUpdate={setUserSettings} /> :
                         modalType === 'profile' ? <ProfileSettingsModal user={user} onClose={() => setModalType(null)} /> :
-                            <RecordModal type={modalType} onClose={() => setModalType(null)} onSubmit={handleRecordSubmit} inventory={inventory} settings={userSettings} communities={joinedCommunities} />
+                            <RecordModal isOpen={true} type={modalType} onClose={() => setModalType(null)} onSubmit={handleRecordSubmit} inventory={inventory} settings={userSettings} communities={joinedCommunities} />
             )}
 
             {notification && (
