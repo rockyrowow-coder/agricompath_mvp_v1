@@ -49,31 +49,34 @@ export function SettingsModal({ onClose }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
             <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm pointer-events-auto" onClick={onClose} />
 
-            <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl pointer-events-auto h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95">
-                <div className="flex h-full">
-                    {/* Sidebar */}
-                    <div className="w-64 bg-slate-50 border-r border-slate-100 p-6 flex flex-col">
-                        <h2 className="text-2xl font-extrabold text-slate-800 mb-8 flex items-center space-x-2">
-                            <Settings className="text-slate-400" />
-                            <span>設定</span>
-                        </h2>
+            <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl pointer-events-auto h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 relative">
 
-                        <nav className="space-y-2 flex-1">
-                            <button onClick={() => setActiveTab('crops')} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'crops' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}>
-                                作物・品種設定
-                            </button>
-                            <button onClick={() => setActiveTab('fields')} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'fields' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}>
-                                圃場登録・マップ
-                            </button>
-                            <button onClick={() => setActiveTab('account')} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'account' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}>
-                                アカウント情報
-                            </button>
-                        </nav>
-                    </div>
+                {editingCrop ? (
+                    <CropSettingsEditor crop={editingCrop} onClose={() => setEditingCrop(null)} />
+                ) : (
+                    <div className="flex h-full">
+                        {/* Sidebar */}
+                        <div className="w-64 bg-slate-50 border-r border-slate-100 p-6 flex flex-col">
+                            <h2 className="text-2xl font-extrabold text-slate-800 mb-8 flex items-center space-x-2">
+                                <Settings className="text-slate-400" />
+                                <span>設定</span>
+                            </h2>
 
-                    {/* Main Content */}
-                    <div className="flex-1 flex flex-col min-w-0 bg-white">
-                        {!editingCrop && (
+                            <nav className="space-y-2 flex-1">
+                                <button onClick={() => setActiveTab('crops')} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'crops' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}>
+                                    作物・品種設定
+                                </button>
+                                <button onClick={() => setActiveTab('fields')} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'fields' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}>
+                                    圃場登録・マップ
+                                </button>
+                                <button onClick={() => setActiveTab('account')} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'account' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}>
+                                    アカウント情報
+                                </button>
+                            </nav>
+                        </div>
+
+                        {/* Main Content */}
+                        <div className="flex-1 flex flex-col min-w-0 bg-white">
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
                                 <h3 className="text-xl font-bold text-slate-800">
                                     {activeTab === 'crops' ? '作物の詳細設定' : activeTab === 'fields' ? '圃場管理' : 'アカウント設定'}
@@ -82,13 +85,9 @@ export function SettingsModal({ onClose }) {
                                     <X size={24} className="text-slate-400" />
                                 </button>
                             </div>
-                        )}
 
-                        <div className={`flex-1 overflow-y-auto ${editingCrop ? 'p-0' : 'p-8'}`}>
-                            {activeTab === 'crops' && (
-                                editingCrop ? (
-                                    <CropSettingsEditor crop={editingCrop} onClose={() => setEditingCrop(null)} />
-                                ) : (
+                            <div className="flex-1 overflow-y-auto p-8">
+                                {activeTab === 'crops' && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {myCrops.map(crop => (
                                             <div key={crop} className="p-5 rounded-2xl border border-slate-200 hover:border-green-200 hover:shadow-md transition-all group">
@@ -112,63 +111,63 @@ export function SettingsModal({ onClose }) {
                                             </div>
                                         ))}
                                     </div>
-                                )
-                            )}
+                                )}
 
-                            {activeTab === 'fields' && (
-                                <div className="space-y-8">
-                                    {/* Register Box */}
-                                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                                        <FieldRegistration onRegister={handleFieldRegistered} />
-                                    </div>
+                                {activeTab === 'fields' && (
+                                    <div className="space-y-8">
+                                        {/* Register Box */}
+                                        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                                            <FieldRegistration onRegister={handleFieldRegistered} />
+                                        </div>
 
-                                    {/* Field Map Link */}
-                                    <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 flex items-center justify-between">
+                                        {/* Field Map Link */}
+                                        <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 flex items-center justify-between">
+                                            <div>
+                                                <h4 className="font-bold text-blue-900 text-lg">圃場マップ機能</h4>
+                                                <p className="text-sm text-blue-700 font-bold mt-1">
+                                                    Google Maps / 衛星写真を使って圃場を登録・確認できます。
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    onClose();
+                                                    setTimeout(() => navigate('/fields'), 100);
+                                                }}
+                                                className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-500 transition-colors"
+                                            >
+                                                マップを開く
+                                            </button>
+                                        </div>
+
+                                        {/* List */}
                                         <div>
-                                            <h4 className="font-bold text-blue-900 text-lg">圃場マップ機能</h4>
-                                            <p className="text-sm text-blue-700 font-bold mt-1">
-                                                Google Maps / 衛星写真を使って圃場を登録・確認できます。
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() => {
-                                                onClose();
-                                                setTimeout(() => navigate('/fields'), 100);
-                                            }}
-                                            className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-500 transition-colors"
-                                        >
-                                            マップを開く
-                                        </button>
-                                    </div>
-
-                                    {/* List */}
-                                    <div>
-                                        <h4 className="font-bold text-slate-800 mb-4">登録済み圃場リスト</h4>
-                                        <div className="space-y-3">
-                                            {fields.length === 0 && <p className="text-slate-400 font-bold text-center py-8">登録された圃場はありません</p>}
-                                            {fields.map(field => (
-                                                <div key={field.id} className="p-4 rounded-xl border border-slate-200 flex justify-between items-center">
-                                                    <div>
-                                                        <p className="font-bold text-slate-800">{field.name}</p>
-                                                        <p className="text-xs text-slate-500 font-bold mt-0.5">
-                                                            {field.type === 'field' ? '畑' : '果樹/ハウス'}  • {field.area}
-                                                        </p>
+                                            <h4 className="font-bold text-slate-800 mb-4">登録済み圃場リスト</h4>
+                                            <div className="space-y-3">
+                                                {fields.length === 0 && <p className="text-slate-400 font-bold text-center py-8">登録された圃場はありません</p>}
+                                                {fields.map(field => (
+                                                    <div key={field.id} className="p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                                                        <div>
+                                                            <p className="font-bold text-slate-800">{field.name}</p>
+                                                            <p className="text-xs text-slate-500 font-bold mt-0.5">
+                                                                {field.type === 'field' ? '畑' : '果樹/ハウス'}  • {field.area}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {activeTab === 'account' && (
-                                <div className="text-center py-20 text-slate-400 font-bold">
-                                    アカウント設定機能 (実装予定)
-                                </div>
-                            )}
+                                {activeTab === 'account' && (
+                                    <div className="text-center py-20 text-slate-400 font-bold">
+                                        アカウント設定機能 (実装予定)
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

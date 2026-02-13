@@ -12,7 +12,7 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
     const [activeVoiceField, setActiveVoiceField] = useState(null);
 
     const [formData, setFormData] = useState({
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toLocaleDateString('sv-SE') + 'T' + new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
         timeStart: "08:00",
         timeEnd: "09:00",
         field: '',
@@ -60,6 +60,8 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
                 setFormData(prev => ({ ...prev, memo: prev.memo + (prev.memo ? ' ' : '') + transcript }));
             } else if (activeVoiceField === 'mixInput') {
                 setMixInput(transcript);
+            } else if (activeVoiceField === 'target') {
+                setFormData(prev => ({ ...prev, target: transcript }));
             }
             // Clear transcript after consuming
             setTranscript('');
@@ -294,11 +296,11 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
                     <section className="space-y-4">
                         <div className="flex items-center space-x-2 text-green-600 font-extrabold text-xs uppercase tracking-wider bg-green-50 inline-block px-3 py-1 rounded-md mb-2"><Timer size={14} /> <span>日時・場所・作物</span></div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">日付</label><input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none" /></div>
+                            <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">日時</label><input type="datetime-local" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none" /></div>
                             <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">対象作物</label><select value={formData.crop} onChange={(e) => setFormData({ ...formData, crop: e.target.value, workType: "" })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 appearance-none focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none">{MOCK_CROPS.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                         </div>
 
-                        {/* Map Selection Toggle */}
+
                         <div className="space-y-1.5">
                             <div className="flex justify-between items-center px-1">
                                 <label className="text-xs font-bold text-slate-500">圃場と範囲</label>
@@ -433,7 +435,25 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
                             )}
 
                             {type === 'pesticide' && (
-                                <div className="space-y-1.5"><label className="text-xs font-bold text-slate-500 ml-1">対象 (虫・病気など)</label><select value={formData.target} onChange={(e) => setFormData({ ...formData, target: e.target.value })} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 appearance-none focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none"><option value="" disabled>選択してください</option>{getTargets().map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                                <div className="space-y-1.5 min-w-0">
+                                    <label className="text-xs font-bold text-slate-500 ml-1">対象 (虫・病気など)</label>
+                                    <div className="relative flex space-x-2">
+                                        <input
+                                            type="text"
+                                            list="target-options"
+                                            value={formData.target}
+                                            onChange={(e) => setFormData({ ...formData, target: e.target.value })}
+                                            className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500"
+                                            placeholder="手入力または選択"
+                                        />
+                                        <datalist id="target-options">
+                                            {getTargets().map(t => <option key={t} value={t} />)}
+                                        </datalist>
+                                        <button onClick={() => handleVoiceStart('target')} className={`p-3 rounded-xl transition-colors ${isListening && activeVoiceField === 'target' ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500 hover:bg-green-100 hover:text-green-600'}`}>
+                                            <Mic size={20} />
+                                        </button>
+                                    </div>
+                                </div>
                             )}
                         </section>
                     )}
@@ -505,6 +525,6 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-6 pb-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]"><button onClick={handleSubmit} className="w-full py-4 rounded-2xl font-bold text-xl shadow-xl bg-green-600 hover:bg-green-500 text-white shadow-green-100 flex items-center justify-center space-x-2 transition-transform active:scale-[0.98]"><CheckCircle2 size={24} /><span>記録して完了</span></button></div>
             </div>
-        </div>
+        </div >
     );
 }
