@@ -66,6 +66,7 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
 
     // Helper to get available work types
     const getWorkTypes = () => {
+        if (!WORK_TYPES) return [];
         // Default from constants
         let types = WORK_TYPES[formData.crop] || WORK_TYPES['others'] || [];
 
@@ -78,7 +79,7 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
 
     // Helper to get available targets (pests/diseases)
     const getTargets = () => {
-        let targets = [...MOCK_TARGETS]; // Global default
+        let targets = MOCK_TARGETS ? [...MOCK_TARGETS] : []; // Guard against undefined
         if (cropSettings?.pests) {
             targets = [...new Set([...targets, ...cropSettings.pests])];
         }
@@ -95,7 +96,7 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
         setLoading(true);
         try {
             const success = await onSubmit(formData);
-            if (success !== false) { // If returns true or undefined(legacy), we close. If explicit false, keep open.
+            if (success !== false) {
                 onClose();
             }
         } catch (error) {
@@ -114,7 +115,7 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
                 <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-3xl">
                     <div className="flex items-center space-x-2">
                         <div className={`p-2 rounded-xl ${type === 'pesticide' ? 'bg-red-100 text-red-600' : type === 'fertilizer' ? 'bg-yellow-100 text-yellow-600' : type === 'tweet' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
-                            {type === 'pesticide' ? <FlaskConical size={20} /> : type === 'fertilizer' ? <Leaf size={20} /> : type === 'tweet' ? <MessageCircle size={20} /> : <PenTool size={20} />}
+                            {type === 'pesticide' ? <FlaskConical size={20} /> : type === 'fertilizer' ? <Leaf size={20} /> : type === 'tweet' ? <Hash size={20} /> : <PenTool size={20} />}
                         </div>
                         <h2 className="font-bold text-lg text-slate-800">
                             {type === 'pesticide' ? '防除記録' : type === 'fertilizer' ? '施肥記録' : type === 'tweet' ? 'つぶやき' : '作業記録'}
