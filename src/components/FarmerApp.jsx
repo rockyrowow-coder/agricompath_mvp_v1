@@ -265,7 +265,7 @@ export default function FarmerApp() {
             pesticide: newRecord.pesticide,
             work_type: newRecord.workType,
             memo: newRecord.memo,
-            is_public: !!isPublic
+            // is_public: !!isPublic // Temporarily disabled to prevent DB errors if schema not updated
         };
 
         if (!user) {
@@ -284,9 +284,8 @@ export default function FarmerApp() {
 
             if (error) {
                 console.error('Error inserting record:', error);
-                // Detailed Error for Debugging
-                alert(`記録の保存に失敗しました。\nCode: ${error.code}\nMessage: ${error.message}\nDetails: ${error.details}`);
-                return;
+                alert(`記録の保存に失敗しました。\nエラー: ${error.message}`);
+                return false;
             }
 
             if (data && data[0]) {
@@ -359,6 +358,7 @@ export default function FarmerApp() {
         navigate('/timeline');
         setNotification(`記録完了！ +${modalType !== 'tweet' ? 50 : 10}pt`);
         setTimeout(() => setNotification(null), 4000);
+        return true;
     };
 
     return (

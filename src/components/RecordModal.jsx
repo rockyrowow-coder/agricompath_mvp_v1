@@ -94,8 +94,10 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
         e.preventDefault();
         setLoading(true);
         try {
-            await onSubmit(formData);
-            onClose();
+            const success = await onSubmit(formData);
+            if (success !== false) { // If returns true or undefined(legacy), we close. If explicit false, keep open.
+                onClose();
+            }
         } catch (error) {
             alert('保存に失敗しました: ' + error.message);
         } finally {
@@ -104,7 +106,7 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center pointer-events-none">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm pointer-events-auto" onClick={onClose} />
 
             <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl pointer-events-auto max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-5">
