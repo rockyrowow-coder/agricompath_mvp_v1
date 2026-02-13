@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Hash, Leaf, Droplets, FlaskConical, PenTool, Image, MapPin, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { X, Calendar, Hash, Leaf, Droplets, FlaskConical, PenTool, Image, MapPin, ChevronDown, CheckCircle2, MessageCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { MOCK_CROPS, WORK_TYPES, MOCK_TARGETS } from '../data/constants'; // Verified exports
@@ -111,11 +111,11 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
                 {/* Header */}
                 <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-3xl">
                     <div className="flex items-center space-x-2">
-                        <div className={`p-2 rounded-xl ${type === 'pesticide' ? 'bg-red-100 text-red-600' : type === 'fertilizer' ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-100 text-blue-600'}`}>
-                            {type === 'pesticide' ? <FlaskConical size={20} /> : type === 'fertilizer' ? <Leaf size={20} /> : <PenTool size={20} />}
+                        <div className={`p-2 rounded-xl ${type === 'pesticide' ? 'bg-red-100 text-red-600' : type === 'fertilizer' ? 'bg-yellow-100 text-yellow-600' : type === 'tweet' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                            {type === 'pesticide' ? <FlaskConical size={20} /> : type === 'fertilizer' ? <Leaf size={20} /> : type === 'tweet' ? <MessageCircle size={20} /> : <PenTool size={20} />}
                         </div>
                         <h2 className="font-bold text-lg text-slate-800">
-                            {type === 'pesticide' ? '防除記録' : type === 'fertilizer' ? '施肥記録' : '作業記録'}
+                            {type === 'pesticide' ? '防除記録' : type === 'fertilizer' ? '施肥記録' : type === 'tweet' ? 'つぶやき' : '作業記録'}
                         </h2>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full text-slate-400">
@@ -139,41 +139,45 @@ export function RecordModal({ isOpen, onClose, type = 'work', initialData = null
                         </div>
                     </div>
 
-                    {/* Field Selection (Datalist) */}
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-500 ml-1">場所 (圃場・ハウス)</label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                list="field-list"
-                                value={formData.field}
-                                onChange={(e) => setFormData({ ...formData, field: e.target.value })}
-                                className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 pl-10 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none"
-                                placeholder="圃場を選択または入力"
-                            />
-                            <datalist id="field-list">
-                                {fields.map(f => <option key={f.id} value={f.name} />)}
-                            </datalist>
-                            <MapPin size={18} className="absolute left-3 top-3.5 text-slate-400 pointer-events-none" />
+                    {/* Field Selection (Skip for Tweet) */}
+                    {type !== 'tweet' && (
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-500 ml-1">場所 (圃場・ハウス)</label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    list="field-list"
+                                    value={formData.field}
+                                    onChange={(e) => setFormData({ ...formData, field: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl p-3.5 pl-10 focus:ring-2 focus:ring-green-100 focus:border-green-500 outline-none"
+                                    placeholder="圃場を選択または入力"
+                                />
+                                <datalist id="field-list">
+                                    {fields.map(f => <option key={f.id} value={f.name} />)}
+                                </datalist>
+                                <MapPin size={18} className="absolute left-3 top-3.5 text-slate-400 pointer-events-none" />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Crop */}
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-500 ml-1">作物</label>
-                        <div className="relative">
-                            <select
-                                value={formData.crop}
-                                onChange={e => setFormData({ ...formData, crop: e.target.value })}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 pl-10 font-bold text-slate-800 appearance-none focus:ring-2 focus:ring-green-500 outline-none"
-                            >
-                                <option value="">選択してください</option>
-                                {MOCK_CROPS.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                            <Leaf size={18} className="absolute left-3 top-3.5 text-slate-400" />
-                            <ChevronDown size={18} className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" />
+                    {/* Crop (Skip for Tweet) */}
+                    {type !== 'tweet' && (
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-500 ml-1">作物</label>
+                            <div className="relative">
+                                <select
+                                    value={formData.crop}
+                                    onChange={e => setFormData({ ...formData, crop: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 pl-10 font-bold text-slate-800 appearance-none focus:ring-2 focus:ring-green-500 outline-none"
+                                >
+                                    <option value="">選択してください</option>
+                                    {MOCK_CROPS.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                                <Leaf size={18} className="absolute left-3 top-3.5 text-slate-400" />
+                                <ChevronDown size={18} className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Work Type (if type == work) */}
                     {type === 'work' && (
