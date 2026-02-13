@@ -356,35 +356,8 @@ export function CommunityDetailScreen() {
                 )}
             </div>
 
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {activeThread ? (
-                    // Thread View: Show Parent then Replies
-                    (() => {
-                        const targetThread = threads.find(t => t.id === activeThread.id) || activeThread;
-                        return (
-                            <>
-                                <PostItem item={targetThread} />
-                                <div className="pl-4 border-l-2 border-slate-200 ml-4 space-y-4">
-                                    {targetThread.replies?.map(reply => (
-                                        <PostItem key={reply.id} item={reply} isReply={true} />
-                                    ))}
-                                </div>
-                            </>
-                        );
-                    })()
-                ) : (
-                    // Default View: List of Topics/Records
-                    visibleThreads.map(item => {
-                        if (item.type === 'record') return <RecordItem key={item.id} item={item} />;
-                        return <PostItem key={item.id} item={item} />;
-                    })
-                )}
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className="bg-white p-3 border-t border-slate-100 shrink-0 mb-safe">
+            {/* Input Area (Moved to Top) */}
+            <div className="bg-white p-3 border-b border-slate-100 shrink-0 z-20 shadow-sm">
                 {!activeThread && (
                     <input
                         type="text"
@@ -428,6 +401,33 @@ export function CommunityDetailScreen() {
                     </button>
                 </div>
                 {isAlert && <p className="text-[10px] text-red-500 font-bold mt-1 ml-2">※ アラートモード: この投稿はフィード上部に固定/強調されます</p>}
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50">
+                {activeThread ? (
+                    // Thread View: Show Parent then Replies
+                    (() => {
+                        const targetThread = threads.find(t => t.id === activeThread.id) || activeThread;
+                        return (
+                            <>
+                                <PostItem item={targetThread} />
+                                <div className="pl-4 border-l-2 border-slate-200 ml-4 space-y-4">
+                                    {targetThread.replies?.map(reply => (
+                                        <PostItem key={reply.id} item={reply} isReply={true} />
+                                    ))}
+                                </div>
+                            </>
+                        );
+                    })()
+                ) : (
+                    // Default View: List of Topics/Records
+                    visibleThreads.map(item => {
+                        if (item.type === 'record') return <RecordItem key={item.id} item={item} />;
+                        return <PostItem key={item.id} item={item} />;
+                    })
+                )}
+                <div ref={messagesEndRef} />
             </div>
         </div>
     );
